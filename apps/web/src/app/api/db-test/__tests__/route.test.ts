@@ -46,7 +46,9 @@ describe('Database Test Endpoint', () => {
     };
 
     const { createAdminClient } = await import('@/lib/supabase');
-    vi.mocked(createAdminClient).mockReturnValue(mockSupabaseClient as any);
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockSupabaseClient as ReturnType<typeof createAdminClient>
+    );
 
     const response = await GET();
     const data = await response.json();
@@ -83,7 +85,9 @@ describe('Database Test Endpoint', () => {
     };
 
     const { createAdminClient } = await import('@/lib/supabase');
-    vi.mocked(createAdminClient).mockReturnValue(mockSupabaseClient as any);
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockSupabaseClient as ReturnType<typeof createAdminClient>
+    );
 
     const response = await GET();
     const data = await response.json();
@@ -113,7 +117,9 @@ describe('Database Test Endpoint', () => {
     };
 
     const { createAdminClient } = await import('@/lib/supabase');
-    vi.mocked(createAdminClient).mockReturnValue(mockSupabaseClient as any);
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockSupabaseClient as ReturnType<typeof createAdminClient>
+    );
 
     const response = await GET();
     const data = await response.json();
@@ -153,7 +159,9 @@ describe('Database Test Endpoint', () => {
     };
 
     const { createAdminClient } = await import('@/lib/supabase');
-    vi.mocked(createAdminClient).mockReturnValue(mockSupabaseClient as any);
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockSupabaseClient as ReturnType<typeof createAdminClient>
+    );
 
     const response = await GET();
     const data = await response.json();
