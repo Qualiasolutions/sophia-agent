@@ -31,7 +31,7 @@ describe('Supabase Client', () => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
       expect(() => createClient()).toThrow(
-        'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required'
+        'Missing Supabase environment variables for client operations'
       );
     });
 
@@ -40,7 +40,7 @@ describe('Supabase Client', () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
       expect(() => createClient()).toThrow(
-        'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required'
+        'Missing Supabase environment variables for client operations'
       );
     });
 
@@ -49,7 +49,7 @@ describe('Supabase Client', () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
       expect(() => createClient()).toThrow(
-        'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required'
+        'Missing Supabase environment variables for client operations'
       );
     });
   });
@@ -71,7 +71,7 @@ describe('Supabase Client', () => {
       process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 
       expect(() => createAdminClient()).toThrow(
-        'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
+        'Missing Supabase environment variables for admin operations'
       );
     });
 
@@ -80,7 +80,7 @@ describe('Supabase Client', () => {
       delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       expect(() => createAdminClient()).toThrow(
-        'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
+        'Missing Supabase environment variables for admin operations'
       );
     });
 

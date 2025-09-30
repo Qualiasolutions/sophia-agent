@@ -1,15 +1,31 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-function getSupabaseUrl(): string | undefined {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL;
+/**
+ * Validates required environment variables and throws descriptive error if missing
+ */
+function validateEnvVars(vars: Record<string, string | undefined>, context: string): void {
+  const missing = Object.entries(vars)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing Supabase environment variables for ${context}: ${missing.join(', ')} are required`
+    );
+  }
 }
 
-function getSupabaseAnonKey(): string | undefined {
-  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-}
-
-function getSupabaseServiceRoleKey(): string | undefined {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY;
+/**
+ * Runtime check to ensure admin client is only used server-side
+ * Throws error if called in browser environment
+ */
+function assertServerSideOnly(functionName: string): void {
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      `${functionName} can only be used in server-side contexts (API routes, Server Components, Server Actions). ` +
+      'Use createClient() for client-side operations instead.'
+    );
+  }
 }
 
 /**
@@ -17,34 +33,42 @@ function getSupabaseServiceRoleKey(): string | undefined {
  * Uses the anon key which respects Row Level Security policies
  */
 export function createClient() {
-  const supabaseUrl = getSupabaseUrl();
-  const supabaseAnonKey = getSupabaseAnonKey();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required'
-    );
-  }
+  validateEnvVars(
+    {
+      NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey,
+    },
+    'client operations'
+  );
 
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  return createSupabaseClient(supabaseUrl!, supabaseAnonKey!);
 }
 
 /**
  * Creates a Supabase admin client for server-side operations
  * Uses the service role key which bypasses Row Level Security policies
- * Should only be used in server-side contexts (API routes, server actions)
+ *
+ * IMPORTANT: Can only be used in server-side contexts (API routes, Server Components, Server Actions)
+ * Will throw error if called in browser environment
  */
 export function createAdminClient() {
-  const supabaseUrl = getSupabaseUrl();
-  const supabaseServiceRoleKey = getSupabaseServiceRoleKey();
+  assertServerSideOnly('createAdminClient');
 
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error(
-      'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
-    );
-  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  return createSupabaseClient(supabaseUrl, supabaseServiceRoleKey, {
+  validateEnvVars(
+    {
+      NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+      SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+    },
+    'admin operations'
+  );
+
+  return createSupabaseClient(supabaseUrl!, supabaseServiceRoleKey!, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
