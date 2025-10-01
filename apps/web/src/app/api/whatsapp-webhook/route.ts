@@ -132,11 +132,20 @@ async function processMessageAsync(
 
   try {
     // Lookup agent by phone number
+    console.log('DEBUG: Looking up agent', { phoneNumber });
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('id')
       .eq('phone_number', phoneNumber)
       .single();
+
+    console.log('DEBUG: Agent lookup result', {
+      found: !!agent,
+      agentId: agent?.id,
+      hasError: !!agentError,
+      errorCode: agentError?.code,
+      errorMessage: agentError?.message
+    });
 
     if (agentError || !agent) {
       console.warn('Unregistered agent attempted to contact Sophia', {
