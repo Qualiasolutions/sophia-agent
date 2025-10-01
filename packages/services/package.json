@@ -1,0 +1,23 @@
+{
+  "name": "@sophiaai/services",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@sophiaai/shared": "file:../shared",
+    "@supabase/supabase-js": "^2.47.10",
+    "axios": "^1.7.9",
+    "openai": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}

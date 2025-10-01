@@ -1,16 +1,48 @@
 # 7. External APIs
 
-## 7.1 WhatsApp Business API (Meta Cloud API)
+## 7.1 WhatsApp Business API
+
+⚠️ **Current Status**: Using **Twilio WhatsApp Sandbox API** temporarily (see below)
+
+### Target: Meta WhatsApp Cloud API
 
 **Base URL**: `https://graph.facebook.com/v18.0`
 **Authentication**: Bearer token
 **Rate Limits**: Unknown (monitor in production)
+**Status**: Pending business verification (2-4 weeks)
 
 **Key Endpoints**:
 - `POST /{phone_number_id}/messages` - Send messages
 - Webhook: `POST /api/webhooks/whatsapp` - Receive messages
 
 **Implementation**: `packages/services/src/whatsapp.service.ts`
+
+### Current: Twilio WhatsApp Sandbox API (Temporary)
+
+**Base URL**: `https://api.twilio.com/2010-04-01`
+**Authentication**: Account SID + Auth Token (HTTP Basic Auth)
+**Rate Limits**: Generous (exact limits TBD)
+**Status**: ✅ Active (Story 1.3)
+
+**Environment Variables**:
+```bash
+TWILIO_ACCOUNT_SID=ACxxxxx
+TWILIO_AUTH_TOKEN=xxxxx
+TWILIO_WHATSAPP_NUMBER=+14155238886  # Twilio sandbox number
+```
+
+**Webhook Endpoint**:
+- `POST /api/whatsapp-webhook` - Receives form-urlencoded data from Twilio
+
+**Key Differences from Meta**:
+- Payload format: Form-urlencoded (`Body`, `From`, `MessageSid`) vs JSON
+- No verification endpoint needed (no `hub.verify_token` pattern)
+- Phone numbers include `whatsapp:` prefix that must be stripped
+- Sandbox limitations: Users must join via "join <code>" message first
+
+**Implementation**: `apps/web/src/app/api/whatsapp-webhook/route.ts`
+
+**Migration Timeline**: Switch to Meta Cloud API when business verification completes (estimated 2-4 weeks from Story 1.1)
 
 ## 7.2 Telegram Bot API
 

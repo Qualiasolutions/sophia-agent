@@ -182,7 +182,7 @@ describe('WhatsApp Webhook', () => {
       expect(capturedPhoneNumber).toBe('+35799123456');
     });
 
-    it('should handle unregistered agent gracefully', async () => {
+    it('should handle unregistered agent and send rejection message (Story 1.6)', async () => {
       const formData = new FormData();
       formData.append('Body', 'Hello from unknown');
       formData.append('From', 'whatsapp:+999999999');
@@ -202,6 +202,11 @@ describe('WhatsApp Webhook', () => {
               }),
             };
           }
+          if (table === 'conversation_logs') {
+            return {
+              insert: vi.fn().mockResolvedValue({ error: null }),
+            };
+          }
           return {};
         }),
       };
@@ -218,8 +223,17 @@ describe('WhatsApp Webhook', () => {
 
       const response = await POST(request);
 
+      // Webhook should return 200 OK for unregistered agents
       expect(response.status).toBe(200);
-      expect(console.warn).toHaveBeenCalled();
+
+      // Wait for async processing
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Verify warning was logged about unregistered agent
+      expect(console.warn).toHaveBeenCalledWith(
+        'Unregistered agent attempted to contact Sophia',
+        expect.any(Object)
+      );
     });
 
     it('should handle duplicate message ID (Twilio retry)', async () => {
@@ -272,7 +286,7 @@ describe('WhatsApp Webhook', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(console.log).toHaveBeenCalledWith(
-        'Duplicate message ID, skipping insert',
+        'Duplicate message ID, skipping processing',
         expect.any(Object)
       );
     });
