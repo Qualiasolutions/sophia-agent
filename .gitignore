@@ -65,3 +65,4 @@ temp/
 # Optional: Uncomment if you don't want to track these
 # .cursor/
 # .claude/
+.vercel
