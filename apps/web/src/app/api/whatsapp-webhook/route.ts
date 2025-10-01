@@ -14,11 +14,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Parse form data (Twilio sends application/x-www-form-urlencoded)
     const formData = await request.formData();
 
+    // DEBUG: Log all form data
+    const allFormData: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) {
+      allFormData[key] = value.toString();
+    }
+    console.log('DEBUG: Webhook received', { formData: allFormData });
+
     const messageStatus = formData.get('MessageStatus')?.toString();
     const messageSid = formData.get('MessageSid')?.toString();
 
     // Check if this is a status callback (not an incoming message)
     if (messageStatus && messageSid) {
+      console.log('DEBUG: Status callback detected', { messageStatus, messageSid });
       // This is a delivery status update
       void processStatusUpdateAsync(messageSid, messageStatus);
       return NextResponse.json({ status: 'success' }, { status: 200 });
