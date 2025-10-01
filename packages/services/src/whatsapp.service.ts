@@ -286,15 +286,6 @@ export class WhatsAppService {
   }
 
   /**
-   * Builds HTTP Basic Auth header
-   * @private
-   */
-  private buildAuthHeader(): string {
-    const credentials = `${this.config.accountSid}:${this.config.authToken}`;
-    return `Basic ${Buffer.from(credentials).toString('base64')}`;
-  }
-
-  /**
    * Retries a function with exponential backoff
    * @private
    */
