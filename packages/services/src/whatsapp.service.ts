@@ -64,6 +64,9 @@ class RateLimiter {
 
     const now = Date.now();
     const oldestTimestamp = this.timestamps[0];
+    if (!oldestTimestamp) {
+      return 0;
+    }
     const waitTime = this.windowMs - (now - oldestTimestamp);
 
     return Math.max(0, waitTime);
