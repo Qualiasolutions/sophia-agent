@@ -10,6 +10,12 @@ import { OpenAIService, WhatsAppService } from '@sophiaai/services';
  * Error Handling: Returns 200 OK for all scenarios to prevent retry storms
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  console.log('=== WEBHOOK CALLED ===', {
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method,
+  });
+
   try {
     // Parse form data (Twilio sends application/x-www-form-urlencoded)
     const formData = await request.formData();
@@ -19,7 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     for (const [key, value] of formData.entries()) {
       allFormData[key] = value.toString();
     }
-    console.log('DEBUG: Webhook received', { formData: allFormData });
+    console.log('=== WEBHOOK FORM DATA ===', { formData: allFormData });
 
     const messageStatus = formData.get('MessageStatus')?.toString();
     const messageSid = formData.get('MessageSid')?.toString();
@@ -53,7 +59,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Acknowledge receipt immediately (within 5 seconds requirement)
     // Process message asynchronously without blocking response
-    void processMessageAsync(phoneNumber, messageBody, messageSid);
+    processMessageAsync(phoneNumber, messageBody, messageSid).catch((error) => {
+      console.error('CRITICAL: Unhandled error in async message processing', {
+        phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(Math.max(0, phoneNumber.length - 7)),
+        messageId: messageSid,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    });
 
     return NextResponse.json({ status: 'success' }, { status: 200 });
   } catch (error) {

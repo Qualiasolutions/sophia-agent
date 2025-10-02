@@ -10,7 +10,7 @@ import type {
 const SYSTEM_PROMPT = `You are Sophia, an AI assistant for zyprus.com, a real estate company in Cyprus. You help real estate agents with their daily tasks by providing quick, accurate assistance.
 
 Your capabilities:
-- Generate professional documents (contracts, marketing materials, legal forms)
+- Generate professional documents (contracts, marketing materials, legal forms, viewing forms, registration forms)
 - Manage property listings (create, update, upload to zyprus.com)
 - Perform real estate calculations (mortgage, ROI, commission)
 - Send and manage emails for client communications
@@ -20,8 +20,19 @@ Your communication style:
 - Concise and clear (2-3 sentences for simple queries)
 - Helpful and proactive
 - Focused on solving agent problems quickly
+- Ask for information one or two items at a time to avoid overwhelming the agent
+- Confirm all collected information before generating documents
 
-When an agent greets you (hello, hi, hey), respond with: "Hi! I'm Sophia, your zyprus.com AI assistant. I can help with documents, listings, calculations, and emails. What can I assist you with today?"`;
+When handling document requests:
+1. Identify the document template requested
+2. Ask for required information conversationally (one or two fields at a time)
+3. Accept natural language responses and extract structured data
+4. Confirm all collected information before generating
+5. Generate the document and deliver it via WhatsApp
+
+When an agent greets you (hello, hi, hey), respond with: "Hi! I'm Sophia, your zyprus.com AI assistant. I can help with documents, listings, calculations, and emails. What can I assist you with today?"
+
+Available document templates include: Marketing Forms, Viewing Forms, Registration Forms, Legal Documents, and more. Ask "what documents can you create?" to see the full list.`;
 
 // GPT model configuration
 const GPT_MODEL = 'gpt-4o-mini' as const;
@@ -93,18 +104,95 @@ export class OpenAIService {
       // Add current user message
       messages.push({ role: 'user', content: message });
 
-      // Call OpenAI API
+      // Define available tools/functions
+      const tools: OpenAI.Chat.ChatCompletionTool[] = [
+        {
+          type: 'function',
+          function: {
+            name: 'list_document_templates',
+            description: 'Get a list of all available document templates that can be generated',
+            parameters: {
+              type: 'object',
+              properties: {
+                category: {
+                  type: 'string',
+                  description: 'Optional: Filter templates by category (e.g., "marketing", "legal", "viewing")',
+                  enum: ['marketing', 'legal', 'viewing', 'registration', 'contract'],
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_template_details',
+            description: 'Get detailed information about a specific document template, including required variables',
+            parameters: {
+              type: 'object',
+              properties: {
+                template_id: {
+                  type: 'string',
+                  description: 'The unique identifier of the template',
+                },
+              },
+              required: ['template_id'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'generate_document',
+            description: 'Generate a document from a template with provided variable values',
+            parameters: {
+              type: 'object',
+              properties: {
+                template_id: {
+                  type: 'string',
+                  description: 'The unique identifier of the template to use',
+                },
+                variables: {
+                  type: 'object',
+                  description: 'Key-value pairs of variable names and their values to populate the template',
+                  additionalProperties: true,
+                },
+              },
+              required: ['template_id', 'variables'],
+            },
+          },
+        },
+      ];
+
+      // Call OpenAI API with tools
       const response = await this.client.chat.completions.create({
         model: this.config.model,
         messages,
         temperature: this.config.temperature,
         max_tokens: this.config.maxTokens,
+        tools,
+        tool_choice: 'auto', // Let the model decide when to use tools
       });
 
       const responseTime = Date.now() - startTime;
 
       // Extract response text
       const responseText = response.choices[0]?.message?.content || '';
+
+      // Extract tool calls if any
+      const toolCalls = response.choices[0]?.message?.tool_calls?.map((tc) => {
+        if (tc.type === 'function' && 'function' in tc) {
+          return {
+            id: tc.id,
+            type: tc.type,
+            function: {
+              name: tc.function.name,
+              arguments: tc.function.arguments,
+            },
+          };
+        }
+        return null;
+      }).filter((tc) => tc !== null);
 
       // Extract token usage
       const tokensUsed = {
@@ -127,6 +215,7 @@ export class OpenAIService {
         costEstimate: `$${costEstimate.toFixed(6)}`,
         responseTime: `${responseTime}ms`,
         isGreeting,
+        toolCallsCount: toolCalls?.length || 0,
       });
 
       return {
@@ -134,6 +223,7 @@ export class OpenAIService {
         tokensUsed,
         costEstimate,
         responseTime,
+        toolCalls,
       };
     } catch (error) {
       return this.handleError(error, Date.now() - startTime);

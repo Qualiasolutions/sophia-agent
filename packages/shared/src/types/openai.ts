@@ -21,6 +21,16 @@ export interface AIResponse {
   };
   costEstimate: number;  // in USD
   responseTime: number;  // in milliseconds
+  toolCalls?: ToolCall[];  // Function calls requested by the AI
+}
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;  // JSON string
+  };
 }
 
 export interface OpenAIConfig {
