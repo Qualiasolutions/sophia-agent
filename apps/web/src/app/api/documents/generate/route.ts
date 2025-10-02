@@ -6,15 +6,15 @@ import {
 } from '@sophiaai/services';
 import { WhatsAppService } from '@sophiaai/services';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const whatsappService = new WhatsAppService();
-
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const whatsappService = new WhatsAppService();
+
     const body = await request.json();
     const { template_id, variables, agent_phone_number } = body;
 

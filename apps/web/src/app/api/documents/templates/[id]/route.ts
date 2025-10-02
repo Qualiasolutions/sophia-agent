@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * GET /api/documents/templates/[id]
  * Get a specific template by ID
@@ -16,6 +11,11 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { data: template, error } = await supabase
       .from('document_templates')
       .select('*')
@@ -58,6 +58,11 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const body = await request.json();
     const { name, description, category, content, tags } = body;
 
@@ -121,6 +126,11 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { error } = await supabase
       .from('document_templates')
       .update({

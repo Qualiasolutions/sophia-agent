@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * GET /api/analytics/templates
  * Get template usage statistics
  */
 export async function GET() {
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Fetch all templates
     const { data: templates, error: templatesError } = await supabase
       .from('document_templates')

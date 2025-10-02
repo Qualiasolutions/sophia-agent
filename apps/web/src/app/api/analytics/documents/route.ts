@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * GET /api/analytics/documents
  * Get document generation analytics
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || '30'; // days
     const template_id = searchParams.get('template_id');

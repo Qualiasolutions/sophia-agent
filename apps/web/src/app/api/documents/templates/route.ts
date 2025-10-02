@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * GET /api/documents/templates
  * List all document templates (with optional filtering)
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const status = searchParams.get('status') || 'active';
