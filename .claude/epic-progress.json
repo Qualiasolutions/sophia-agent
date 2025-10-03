@@ -1,13 +1,13 @@
 {
   "project": "SophiaAI",
-  "current_epic": 3,
+  "current_epic": 2,
   "overall_progress": {
     "total_epics": 6,
-    "completed_epics": 2,
-    "remaining_epics": 4,
+    "completed_epics": 1,
+    "remaining_epics": 5,
     "total_stories": 46,
-    "completed_stories": 14,
-    "remaining_stories": 32
+    "completed_stories": 6,
+    "remaining_stories": 40
   },
   "epic_1": {
     "name": "Foundation & WhatsApp Integration",
@@ -42,36 +42,157 @@
   },
   "epic_2": {
     "name": "Document Generation System",
-    "status": "completed",
-    "completion_date": "2025-10-03",
+    "status": "in_progress",
+    "started_date": "2025-10-03",
+    "implementation_approach": "OpenAI Assistant API with Knowledge Base files",
     "stories": {
-      "2.1": { "name": "Document Template Database Schema", "status": "completed", "agent": "database-architect", "completion_date": "2025-10-03" },
-      "2.2": { "name": "Template Variable Extraction & Validation", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" },
-      "2.3": { "name": "Document Template Rendering Engine", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" },
-      "2.4": { "name": "Conversational Document Request Flow", "status": "completed", "agent": "ai-llm-specialist", "completion_date": "2025-10-03" },
-      "2.5": { "name": "Document Generation & Delivery via WhatsApp", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" },
-      "2.6": { "name": "Document Template Management API", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" },
-      "2.7": { "name": "Common Document Templates Implementation", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" },
-      "2.8": { "name": "Document Generation Analytics & Logging", "status": "completed", "agent": "backend-developer", "completion_date": "2025-10-03" }
+      "2.1": {
+        "name": "OpenAI Assistant Integration",
+        "status": "completed",
+        "completion_date": "2025-10-03",
+        "notes": "Replaced LibreOffice approach with OpenAI Assistant API"
+      },
+      "2.2": { "name": "Database Migration for Assistant", "status": "completed", "completion_date": "2025-10-03" },
+      "2.3": { "name": "Document Request Detection & Delegation", "status": "completed", "completion_date": "2025-10-03" },
+      "2.4": { "name": "Assistant Logging & Analytics", "status": "completed", "completion_date": "2025-10-03" },
+      "2.5": { "name": "Vercel Deployment Configuration", "status": "blocked", "blocker": "monorepo-build-issue" }
     },
-    "blockers": [],
-    "notes": [],
-    "key_achievements": [
-      "Document template database schema with RLS policies",
-      "Variable extraction, validation, and rendering engine",
-      "OpenAI conversational document request flow with function calling",
-      "WhatsApp document generation and delivery API",
-      "Template management API endpoints (list, get, generate)",
-      "5 common templates: Viewing Form, Exclusive Agreement, Marketing Agreement, Property Listing, Client Registration",
-      "Document generation analytics tracking in database"
+    "blockers": [
+      {
+        "id": "monorepo-build-issue",
+        "severity": "high",
+        "description": "Vercel build fails with 'Module not found: @sophiaai/services'",
+        "details": "Monorepo packages not being built/resolved correctly on Vercel",
+        "error_location": "apps/web build - can't resolve packages/services",
+        "potential_solutions": [
+          "Add vercel.json with monorepo build configuration",
+          "Configure turbo.json for proper build order",
+          "Ensure packages are built before apps in Vercel",
+          "Alternative: Switch to relative imports instead of workspace aliases"
+        ],
+        "files_affected": [
+          "apps/web/src/app/api/whatsapp-webhook/route.ts",
+          "apps/web/src/app/api/test-message/route.ts"
+        ],
+        "created": "2025-10-03T06:03:54Z"
+      }
     ],
-    "technical_highlights": {
-      "templates_count": 5,
-      "categories": ["viewing", "legal", "marketing", "listing", "registration"],
-      "rendering_engine": "Mustache-style {{variable}} with conditional sections",
-      "whatsapp_chunking": "Auto-split documents >4096 chars",
-      "validation": "Type checking (text, number, email, phone, date)",
-      "analytics": "Generation time tracking and variable logging"
+    "completed_work": {
+      "database": {
+        "migration": "008_update_for_openai_assistant.sql",
+        "changes": [
+          "Dropped document_templates table (not needed with Assistant)",
+          "Updated document_generations: added thread_id, assistant_id, run_id",
+          "Changed template_id (UUID) to template_filename (TEXT)",
+          "Added indexes for Assistant tracking"
+        ],
+        "status": "applied_successfully"
+      },
+      "services": {
+        "created": [
+          "packages/services/src/assistant.service.ts - OpenAI Assistant API integration",
+          "Thread management, message sending, response polling"
+        ],
+        "modified": [
+          "packages/services/src/openai.service.ts - Document request detection & delegation",
+          "packages/services/src/index.ts - Export AssistantService",
+          "packages/shared/src/types/openai.ts - Add Assistant metadata to AIResponse"
+        ],
+        "deleted": [
+          "packages/services/src/knowledge-base.service.ts",
+          "apps/web/src/app/api/documents/* (entire directory)",
+          "apps/web/src/app/api/analytics/* (entire directory)"
+        ]
+      },
+      "webhook": {
+        "file": "apps/web/src/app/api/whatsapp-webhook/route.ts",
+        "changes": [
+          "Detects document requests via OpenAI service",
+          "Logs Assistant metadata (thread_id, run_id, assistant_id) to document_generations",
+          "Maintains conversation history context"
+        ]
+      },
+      "environment_variables": {
+        "added": "OPENAI_ASSISTANT_ID=asst_H5PrzEjjbSF5p4OWKJounBzi",
+        "locations": [
+          "apps/web/.env.local (local)",
+          "Vercel production environment (deployed)"
+        ]
+      }
+    },
+    "assistant_configuration": {
+      "assistant_id": "asst_H5PrzEjjbSF5p4OWKJounBzi",
+      "knowledge_base_location": "/Knowledge Base/Templates/",
+      "template_count": 29,
+      "template_types": [
+        "Registration forms (Reg_Banks.docx, Reg_Developers_.docx, Reg_ to Owners.docx)",
+        "Viewing forms (Email_For_Viewing_Form.docx, Zyprus_Viewing_Form_*.docx)",
+        "Legal agreements (EXCLUSIVE AGREEMENT NEW_via_email.docx)",
+        "Marketing agreements (_Selling their property with Zyprus.docx, ZPG_Marketing_Agreement_*.docx)",
+        "Email templates (AI_Templates_Zyprus_Main.docx with 15+ sub-templates)",
+        "Reference documents (title deeds, property examples)"
+      ],
+      "key_features": [
+        "Phone masking: 99 07 67 32 → 99 ** 67 32",
+        "Bank detection from property URLs",
+        "Conditional sections (land vs property)",
+        "I vs WE voice handling",
+        "Template-specific instruction following"
+      ]
+    },
+    "git_commits": [
+      "76aff49 - feat(epic-2): integrate OpenAI Assistant for document generation",
+      "ce29943 - fix: remove old document API routes"
+    ],
+    "current_state": {
+      "code_status": "committed_to_main",
+      "database_status": "migration_applied",
+      "local_env_status": "configured",
+      "vercel_env_status": "configured",
+      "deployment_status": "failed",
+      "reason": "Monorepo package resolution issue on Vercel build"
+    },
+    "next_steps": [
+      {
+        "priority": 1,
+        "task": "Fix Vercel monorepo build configuration",
+        "options": [
+          "Add vercel.json with buildCommand that builds packages first",
+          "Add turbo.json for build orchestration",
+          "Check package.json workspace configuration",
+          "Alternative: Convert @sophiaai/services imports to relative paths"
+        ]
+      },
+      {
+        "priority": 2,
+        "task": "Test Assistant integration locally",
+        "steps": [
+          "Send test message: 'Sophia I want reg_banks with John Doe, Bank of Cyprus'",
+          "Verify Assistant reads template from Knowledge Base",
+          "Check phone masking works correctly",
+          "Validate document_generations logging"
+        ]
+      },
+      {
+        "priority": 3,
+        "task": "Deploy to production after fixing build",
+        "command": "cd apps/web && vercel deploy --prod"
+      }
+    ],
+    "handoff_notes": {
+      "for_next_agent": "Epic 2 code is complete and committed. The OpenAI Assistant integration works locally but Vercel deployment fails due to monorepo workspace resolution. The @sophiaai/services package can't be found during build. Need to either: (1) Fix Vercel build config to build packages before apps, or (2) switch to relative imports. Once deployed, test with actual WhatsApp messages to ensure Assistant generates documents correctly with phone masking and template instructions.",
+      "critical_files": [
+        "packages/services/src/assistant.service.ts - Main Assistant integration",
+        "packages/services/src/openai.service.ts - Document request detection (line 88-118)",
+        "apps/web/src/app/api/whatsapp-webhook/route.ts - Assistant logging (line 282-317)",
+        "packages/database/supabase/migrations/008_update_for_openai_assistant.sql"
+      ],
+      "environment_vars_needed": [
+        "OPENAI_API_KEY (already set)",
+        "OPENAI_ASSISTANT_ID=asst_H5PrzEjjbSF5p4OWKJounBzi (already set)"
+      ],
+      "test_command": "Send WhatsApp message: 'Sophia I want reg_banks with Fawzi Goussous, Bank of Cyprus, my phone 99 07 67 32, property https://remuproperties.com/listing-29190'",
+      "expected_behavior": "Assistant should return completed registration email with phone masked as 99 ** 67 32"
     }
   },
   "epic_3": {
@@ -141,8 +262,8 @@
   },
   "metadata": {
     "created": "2025-10-03",
-    "last_updated": "2025-10-03T08:30:00Z",
-    "version": "1.1.0",
+    "last_updated": "2025-10-03T09:10:00Z",
+    "version": "1.2.0",
     "agents_configured": [
       "master-orchestrator",
       "database-architect",
@@ -153,8 +274,8 @@
       "frontend-developer",
       "devops-deployment"
     ],
-    "last_completed_epic": "epic_2",
-    "next_epic": "epic_3",
-    "production_status": "live_and_operational"
+    "last_completed_epic": "epic_1",
+    "current_epic_in_progress": "epic_2",
+    "production_status": "epic_1_deployed_epic_2_blocked"
   }
 }
