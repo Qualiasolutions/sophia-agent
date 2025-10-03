@@ -164,16 +164,23 @@ async function processMessageAsync(
 
   try {
     // Lookup agent by phone number
-    console.log('DEBUG: Looking up agent', { phoneNumber });
+    console.log('DEBUG: Looking up agent', {
+      phoneNumber,
+      phoneNumberLength: phoneNumber.length,
+      phoneNumberCharCodes: Array.from(phoneNumber).map(c => c.charCodeAt(0))
+    });
+
     const { data: agent, error: agentError } = await supabase
       .from('agents')
-      .select('id')
+      .select('id, name, phone_number')
       .eq('phone_number', phoneNumber)
       .single();
 
     console.log('DEBUG: Agent lookup result', {
       found: !!agent,
       agentId: agent?.id,
+      agentName: agent?.name,
+      agentPhone: agent?.phone_number,
       hasError: !!agentError,
       errorCode: agentError?.code,
       errorMessage: agentError?.message
