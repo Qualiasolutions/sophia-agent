@@ -35,7 +35,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log('DEBUG: Status callback detected', { messageStatus, messageSid });
       // This is a delivery status update
       void processStatusUpdateAsync(messageSid, messageStatus);
-      return NextResponse.json({ status: 'success' }, { status: 200 });
+      // Return empty TwiML response (Twilio expects XML, not JSON)
+      return new NextResponse('<Response></Response>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
     }
 
     // This is an incoming message
@@ -50,8 +54,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         hasMessageSid: !!messageSid,
       });
 
-      // Return 200 OK even for invalid payloads to prevent Twilio retries
-      return NextResponse.json({ status: 'error', message: 'Invalid payload' }, { status: 200 });
+      // Return empty TwiML even for invalid payloads to prevent Twilio retries
+      return new NextResponse('<Response></Response>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
     }
 
     // Strip 'whatsapp:' prefix from phone number (Twilio format: whatsapp:+1234567890)
@@ -68,15 +75,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     });
 
-    return NextResponse.json({ status: 'success' }, { status: 200 });
+    // Return empty TwiML response (Twilio expects XML, not JSON)
+    return new NextResponse('<Response></Response>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/xml' },
+    });
   } catch (error) {
     console.error('Webhook error:', error);
 
-    // Return 200 OK even on errors to prevent Twilio retries
-    return NextResponse.json(
-      { status: 'error', message: 'Internal server error' },
-      { status: 200 }
-    );
+    // Return empty TwiML even on errors to prevent Twilio retries
+    return new NextResponse('<Response></Response>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/xml' },
+    });
   }
 }
 
