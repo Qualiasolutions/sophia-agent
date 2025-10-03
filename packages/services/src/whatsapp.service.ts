@@ -292,8 +292,8 @@ export class WhatsAppService {
    * @private
    */
   private formatPhoneNumber(phoneNumber: string): string {
-    // Remove whatsapp: prefix if already present
-    const cleanNumber = phoneNumber.replace(/^whatsapp:/, '');
+    // Remove whatsapp: prefix if already present and trim whitespace
+    const cleanNumber = phoneNumber.replace(/^whatsapp:/, '').trim();
 
     // Add whatsapp: prefix for Twilio
     return `whatsapp:${cleanNumber}`;
