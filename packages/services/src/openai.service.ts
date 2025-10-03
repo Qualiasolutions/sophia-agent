@@ -57,14 +57,14 @@ export class OpenAIService {
 
     this.client = new OpenAI({
       apiKey,
-      timeout: 10000, // 10 seconds timeout (increased for reliability)
+      timeout: 5000, // 5 seconds timeout (must complete before Vercel 10s limit)
     });
 
     this.config = {
       model: GPT_MODEL,
       temperature: 0.7,
-      maxTokens: 500,
-      timeout: 10000,
+      maxTokens: 300, // Reduced from 500 to ensure faster responses
+      timeout: 5000,
     };
 
     this.systemPrompt = SYSTEM_PROMPT;
