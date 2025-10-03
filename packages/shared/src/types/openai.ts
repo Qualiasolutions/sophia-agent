@@ -22,6 +22,10 @@ export interface AIResponse {
   costEstimate: number;  // in USD
   responseTime: number;  // in milliseconds
   toolCalls?: ToolCall[];  // Function calls requested by the AI
+  // OpenAI Assistant metadata (for document generation)
+  threadId?: string;  // Assistant thread ID
+  runId?: string;  // Assistant run ID
+  assistantId?: string;  // Assistant ID used
 }
 
 export interface ToolCall {

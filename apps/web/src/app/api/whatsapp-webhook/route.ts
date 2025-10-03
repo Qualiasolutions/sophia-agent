@@ -276,7 +276,45 @@ async function processMessageAsync(
         tokensUsed: aiResponse.tokensUsed.total,
         costEstimate: `$${aiResponse.costEstimate.toFixed(6)}`,
         responseTime: `${aiResponse.responseTime}ms`,
+        isAssistantResponse: !!(aiResponse.threadId && aiResponse.assistantId),
       });
+
+      // Log to document_generations if this was an Assistant response (document generation)
+      if (aiResponse.threadId && aiResponse.assistantId && agentId) {
+        try {
+          const { error: docGenError } = await supabase
+            .from('document_generations')
+            .insert({
+              agent_id: agentId,
+              generated_content: aiResponse.text,
+              thread_id: aiResponse.threadId,
+              assistant_id: aiResponse.assistantId,
+              run_id: aiResponse.runId || null,
+              generation_time_ms: aiResponse.responseTime,
+              variables_provided: {},
+              template_filename: null, // Will be extracted later if needed
+            });
+
+          if (docGenError) {
+            console.error('[Document Generation] Failed to log generation', {
+              agentId,
+              threadId: aiResponse.threadId,
+              error: docGenError.message,
+            });
+          } else {
+            console.log('[Document Generation] Logged successfully', {
+              agentId,
+              threadId: aiResponse.threadId,
+              assistantId: aiResponse.assistantId,
+            });
+          }
+        } catch (logError) {
+          console.error('[Document Generation] Error logging generation', {
+            agentId,
+            error: logError instanceof Error ? logError.message : 'Unknown error',
+          });
+        }
+      }
 
       // Send WhatsApp reply using WhatsApp service
       const whatsappService = new WhatsAppService({ supabaseClient: supabase });

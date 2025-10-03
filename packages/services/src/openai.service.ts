@@ -5,6 +5,7 @@ import type {
   OpenAIConfig,
   Intent,
 } from '@sophiaai/shared';
+import { getAssistantService } from './assistant.service';
 
 // Sophia's system prompt - defines her identity, role, and conversational style
 const SYSTEM_PROMPT = `You are Sophia, an AI assistant for zyprus.com, a real estate company in Cyprus. You help real estate agents with their daily tasks by providing quick, accurate assistance.
@@ -83,6 +84,40 @@ export class OpenAIService {
     const startTime = Date.now();
 
     try {
+      // Check if this is a document request - delegate to Assistant
+      const isDocumentRequest = this.isDocumentRequest(message);
+
+      if (isDocumentRequest) {
+        console.log('[OpenAI] Document request detected - delegating to Assistant', {
+          agentId: context?.agentId,
+          messageLength: message.length,
+        });
+
+        const assistantService = getAssistantService();
+        const assistantResponse = await assistantService.generateDocument(
+          context?.agentId || 'guest',
+          message,
+          context?.messageHistory || []
+        );
+
+        // Convert Assistant response to AIResponse format
+        return {
+          text: assistantResponse.text,
+          tokensUsed: assistantResponse.tokensUsed || {
+            prompt: 0,
+            completion: 0,
+            total: 0,
+          },
+          costEstimate: assistantResponse.costEstimate || 0,
+          responseTime: assistantResponse.responseTime,
+          // Add Assistant metadata for logging
+          threadId: assistantResponse.threadId,
+          runId: assistantResponse.runId,
+          assistantId: assistantResponse.assistantId,
+        };
+      }
+
+      // Not a document request - use regular OpenAI for general chat
       // Detect if this is a greeting
       const isGreeting = this.isGreeting(message);
 
@@ -258,6 +293,42 @@ export class OpenAIService {
     const outputCost =
       (usage.completion_tokens / 1_000_000) * PRICING.OUTPUT_PER_1M;
     return inputCost + outputCost;
+  }
+
+  /**
+   * Detect if a message is a document request
+   * @param message - The user's message text
+   * @returns True if the message is a document request
+   */
+  private isDocumentRequest(message: string): boolean {
+    const normalizedMessage = message.toLowerCase().trim();
+    const documentKeywords = [
+      'document',
+      'reg_',
+      'reg ',
+      'registration',
+      'viewing form',
+      'viewing',
+      'exclusive',
+      'marketing',
+      'agreement',
+      'contract',
+      'valuation',
+      'follow up',
+      'email for',
+      'template',
+      'generate',
+      'create document',
+      'i want',
+      'i need',
+      'can you write',
+      'can you create',
+      'send me',
+    ];
+
+    return documentKeywords.some((keyword) =>
+      normalizedMessage.includes(keyword)
+    );
   }
 
   /**

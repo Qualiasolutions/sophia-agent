@@ -1,277 +1,149 @@
 /**
  * Document Service
- * Handles document template management, validation, and rendering
- * Epic 2: Document Generation System (Stories 2.2, 2.3)
+ * AI-powered document completion from Knowledge Base templates
+ * Epic 2 (Re-implementation): Natural language document generation
  */
 
-import type {
-  TemplateVariable,
-  TemplateValidationResult,
-  TemplateRenderOptions,
-  TemplateRenderResult,
-} from '@sophiaai/shared';
+import OpenAI from 'openai';
+import {
+  getTemplateWithCache,
+  findTemplateByName,
+  type TemplateContent,
+} from './knowledge-base.service';
 
-/**
- * Extract variable placeholders from template content
- * Matches patterns like {{variable_name}}
- */
-export function extractTemplateVariables(templateContent: string): string[] {
-  const variablePattern = /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g;
-  const matches = templateContent.matchAll(variablePattern);
-  const variables = new Set<string>();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-  for (const match of matches) {
-    if (match[1]) {
-      variables.add(match[1]);
-    }
-  }
+export interface DocumentRequest {
+  templateName: string;
+  variables: Record<string, any>;
+  rawMessage: string;
+}
 
-  return Array.from(variables);
+export interface CompletedDocument {
+  templateName: string;
+  content: string;
+  warnings?: string[];
 }
 
 /**
- * Auto-generate variable schema from template content
- * Creates basic variable definitions with inferred types
+ * Parse a natural language document request from an agent
+ * Example: "Sophia, I want reg_banks with Fawzi Goussous, Bank of Cyprus, link https://..."
  */
-export function generateVariableSchema(templateContent: string): TemplateVariable[] {
-  const variableNames = extractTemplateVariables(templateContent);
-
-  return variableNames.map((name) => {
-    // Infer type from variable name patterns
-    let type: TemplateVariable['type'] = 'text';
-
-    if (name.includes('price') || name.includes('amount') || name.includes('sqm') ||
-        name.includes('bedrooms') || name.includes('bathrooms') || name.includes('year')) {
-      type = 'number';
-    } else if (name.includes('email')) {
-      type = 'email';
-    } else if (name.includes('phone') || name.includes('mobile')) {
-      type = 'phone';
-    } else if (name.includes('date')) {
-      type = 'date';
-    }
-
-    // Generate human-readable label
-    const label = name
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-
-    return {
-      name,
-      type,
-      required: true,
-      label,
-    };
-  });
-}
-
-/**
- * Validate provided variable values against template requirements
- */
-export function validateTemplateVariables(
-  variables: TemplateVariable[],
-  providedValues: Record<string, any>
-): TemplateValidationResult {
-  const result: TemplateValidationResult = {
-    valid: true,
-    missingVariables: [],
-    invalidVariables: [],
-    errors: [],
-  };
-
-  for (const variable of variables) {
-    const value = providedValues[variable.name];
-
-    // Check required variables
-    if (variable.required && (value === undefined || value === null || value === '')) {
-      result.valid = false;
-      result.missingVariables.push(variable.name);
-      result.errors.push(`Missing required variable: ${variable.label || variable.name}`);
-      continue;
-    }
-
-    // Skip validation if optional and not provided
-    if (!variable.required && (value === undefined || value === null || value === '')) {
-      continue;
-    }
-
-    // Type validation
-    switch (variable.type) {
-      case 'number':
-        if (typeof value !== 'number' && isNaN(Number(value))) {
-          result.valid = false;
-          result.invalidVariables.push({
-            name: variable.name,
-            reason: `Expected a number, got: ${typeof value}`,
-          });
-        } else {
-          const numValue = typeof value === 'number' ? value : Number(value);
-          if (variable.validation?.min !== undefined && numValue < variable.validation.min) {
-            result.valid = false;
-            result.invalidVariables.push({
-              name: variable.name,
-              reason: `Value ${numValue} is less than minimum ${variable.validation.min}`,
-            });
-          }
-          if (variable.validation?.max !== undefined && numValue > variable.validation.max) {
-            result.valid = false;
-            result.invalidVariables.push({
-              name: variable.name,
-              reason: `Value ${numValue} is greater than maximum ${variable.validation.max}`,
-            });
-          }
-        }
-        break;
-
-      case 'email':
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(String(value))) {
-          result.valid = false;
-          result.invalidVariables.push({
-            name: variable.name,
-            reason: 'Invalid email format',
-          });
-        }
-        break;
-
-      case 'phone':
-        // Basic international phone validation
-        const phonePattern = /^\+?[1-9]\d{7,14}$/;
-        const cleanedPhone = String(value).replace(/[\s\-\(\)]/g, '');
-        if (!phonePattern.test(cleanedPhone)) {
-          result.valid = false;
-          result.invalidVariables.push({
-            name: variable.name,
-            reason: 'Invalid phone number format',
-          });
-        }
-        break;
-
-      case 'date':
-        const dateValue = new Date(value);
-        if (isNaN(dateValue.getTime())) {
-          result.valid = false;
-          result.invalidVariables.push({
-            name: variable.name,
-            reason: 'Invalid date format',
-          });
-        }
-        break;
-    }
-
-    // Pattern validation
-    if (variable.validation?.pattern && typeof value === 'string') {
-      const pattern = new RegExp(variable.validation.pattern);
-      if (!pattern.test(value)) {
-        result.valid = false;
-        result.invalidVariables.push({
-          name: variable.name,
-          reason: `Value does not match required pattern`,
-        });
-      }
-    }
-
-    // Options validation
-    if (variable.validation?.options && !variable.validation.options.includes(String(value))) {
-      result.valid = false;
-      result.invalidVariables.push({
-        name: variable.name,
-        reason: `Value must be one of: ${variable.validation.options.join(', ')}`,
-      });
-    }
-  }
-
-  return result;
-}
-
-/**
- * Format value based on variable type
- */
-function formatValue(value: any, type: TemplateVariable['type']): string {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  switch (type) {
-    case 'number':
-      return Number(value).toLocaleString();
-    case 'date':
-      return new Date(value).toLocaleDateString('en-GB');
-    case 'boolean':
-      return value ? 'Yes' : 'No';
-    default:
-      return String(value);
-  }
-}
-
-/**
- * Render document template with provided variable values
- * Supports basic conditional sections: {{#if variable}}...{{/if}}
- */
-export function renderTemplate(
-  templateContent: string,
-  variables: TemplateVariable[],
-  providedValues: Record<string, any>,
-  options: TemplateRenderOptions = {}
-): TemplateRenderResult {
-  const startTime = Date.now();
-
+export async function parseDocumentRequest(
+  message: string
+): Promise<DocumentRequest | null> {
   try {
-    let content = templateContent;
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a document request parser for real estate agents.
+Extract the template name and variables from their WhatsApp messages.
 
-    // Apply default values for missing optional variables
-    const values = { ...providedValues };
-    for (const variable of variables) {
-      if (values[variable.name] === undefined && variable.defaultValue !== undefined) {
-        values[variable.name] = variable.defaultValue;
-      }
-    }
+Common template patterns:
+- "reg_banks" or "registration banks" -> Reg_Banks.docx
+- "reg_developers" -> Reg_Developers_.docx
+- "viewing form" -> Email_For_Viewing_Form.docx
+- "exclusive agreement" -> EXCLUSIVE AGREEMENT NEW_via_email.docx
+- "marketing agreement" -> Marketing_Agreement.docx
 
-    // Process conditional sections if enabled
-    if (options.conditionalSections !== false) {
-      // Match {{#if variable}}content{{/if}}
-      const conditionalPattern = /\{\{#if\s+([a-zA-Z_][a-zA-Z0-9_]*)\}\}([\s\S]*?)\{\{\/if\}\}/g;
-      content = content.replace(conditionalPattern, (_match, varName, innerContent) => {
-        const value = values[varName];
-        // Include content if variable is truthy
-        return value ? innerContent : '';
-      });
-    }
-
-    // Replace variable placeholders with values
-    const variablePattern = /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g;
-    content = content.replace(variablePattern, (_match, varName) => {
-      const variable = variables.find(v => v.name === varName);
-      const value = values[varName];
-
-      if (value === undefined || value === null) {
-        return ''; // Empty string for missing values
-      }
-
-      return variable ? formatValue(value, variable.type) : String(value);
+Extract all details mentioned: names, phone numbers, property links, banks, etc.
+Return JSON: {"template_name": "...", "variables": {...}}`,
+        },
+        {
+          role: 'user',
+          content: message,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
     });
 
-    // Normalize whitespace if not preserving
-    if (!options.preserveWhitespace) {
-      content = content
-        .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
-        .trim();
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+    if (!result.template_name) {
+      return null;
     }
 
-    const renderTime = Date.now() - startTime;
-
     return {
-      success: true,
-      content,
-      warnings: renderTime > 200 ? [`Rendering took ${renderTime}ms`] : undefined,
+      templateName: result.template_name,
+      variables: result.variables || {},
+      rawMessage: message,
     };
   } catch (error) {
-    return {
-      success: false,
-      errors: [error instanceof Error ? error.message : 'Unknown rendering error'],
-    };
+    console.error('[Document Service] Failed to parse request:', error);
+    return null;
   }
+}
+
+/**
+ * Complete a document template with provided variables
+ * Uses AI to understand template structure and fill appropriately
+ */
+export async function completeDocument(
+  templateName: string,
+  variables: Record<string, any>,
+  agentMessage: string
+): Promise<CompletedDocument> {
+  // Find and read the template
+  const template = await findTemplateByName(templateName);
+
+  if (!template) {
+    throw new Error(`Template not found: ${templateName}`);
+  }
+
+  const templateContent = await getTemplateWithCache(template.filename);
+
+  // Use OpenAI to complete the document
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      {
+        role: 'system',
+        content: `You are Sophia, an AI assistant for Zyprus real estate agents.
+
+Your task: Fill in document templates with information from agent messages.
+
+KEY RULES:
+1. **Phone Masking**: Hide middle digits - 99 07 67 32 becomes 99 ** 67 32
+2. **Bank Detection**: Extract bank name from property link or ask if needed
+3. **Conditional Sections**:
+   - Land properties need "Please find attached the viewing form" reminder
+   - Regular properties don't need viewing form
+4. **Link Handling**: Extract all URLs from agent message
+5. **Follow Template Instructions**: The template contains instructions - follow them exactly
+6. **Preserve Formatting**: Keep the document structure intact
+
+Return ONLY the completed document text, ready to send via WhatsApp.`,
+      },
+      {
+        role: 'user',
+        content: `Template Document:\n${templateContent.content}\n\n---\n\nAgent Message: ${agentMessage}\n\n---\n\nComplete this document using the information from the agent's message. Follow all template instructions.`,
+      },
+    ],
+    temperature: 0.2,
+  });
+
+  const content = completion.choices[0].message.content || '';
+  const warnings: string[] = [];
+
+  // Check for common issues
+  if (!content.includes('**')) {
+    // Check if phone numbers were masked
+    const phonePattern = /\d{2}\s+\d{2}\s+\d{2}\s+\d{2}/;
+    if (phonePattern.test(content)) {
+      warnings.push('Phone numbers may not be properly masked');
+    }
+  }
+
+  return {
+    templateName: template.displayName,
+    content,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  };
 }
 
 /**
@@ -312,4 +184,61 @@ export function parsePercentage(input: string): number | null {
   // If value is < 1, assume it's already decimal (0.04)
   // Otherwise assume it's percentage (4 = 4%)
   return value < 1 ? value : value / 100;
+}
+
+/**
+ * Mask phone number for privacy
+ * Example: "99 07 67 32" -> "99 ** 67 32"
+ */
+export function maskPhoneNumber(phone: string): string {
+  // Remove all non-digit characters except +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+
+  // Cyprus mobile: +357 99 07 67 32 or 99 07 67 32
+  if (cleaned.startsWith('+357')) {
+    const digits = cleaned.substring(4); // Remove +357
+    if (digits.length === 8) {
+      return `+357 ${digits.substring(0, 2)} ** ${digits.substring(4, 6)} ${digits.substring(6)}`;
+    }
+  } else if (cleaned.length === 8) {
+    return `${cleaned.substring(0, 2)} ** ${cleaned.substring(4, 6)} ${cleaned.substring(6)}`;
+  }
+
+  // International format: mask middle portion
+  if (cleaned.length >= 10) {
+    const start = cleaned.substring(0, 4);
+    const end = cleaned.substring(cleaned.length - 4);
+    return `${start} ** ${end}`;
+  }
+
+  return phone; // Return original if pattern doesn't match
+}
+
+/**
+ * Extract property links from message
+ */
+export function extractPropertyLinks(message: string): string[] {
+  const urlPattern = /https?:\/\/[^\s]+/g;
+  const matches = message.match(urlPattern);
+  return matches || [];
+}
+
+/**
+ * Detect bank name from property link
+ */
+export function detectBankFromLink(link: string): string | null {
+  const bankPatterns = {
+    'Remu Properties': /remuproperties\.com/i,
+    'Gordian': /gordian/i,
+    'Altia': /altia/i,
+    'Altamira': /altamira/i,
+  };
+
+  for (const [bank, pattern] of Object.entries(bankPatterns)) {
+    if (pattern.test(link)) {
+      return bank;
+    }
+  }
+
+  return null;
 }
