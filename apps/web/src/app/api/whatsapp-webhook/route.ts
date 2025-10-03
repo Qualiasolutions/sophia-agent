@@ -180,10 +180,9 @@ async function processMessageAsync(
         const whatsappService = new WhatsAppService({ supabaseClient: supabase });
         const rejectionMessage = "Hi! I'm Sophia, the AI assistant for zyprus.com agents. This service is currently available only to registered agents. Please contact your administrator for access.";
 
-        await whatsappService.sendMessage({
-          phoneNumber: phoneNumber,
-          messageText: rejectionMessage,
-        });
+        await whatsappService.sendMessage(
+          { phoneNumber, messageText: rejectionMessage }
+        );
 
         console.log('Rejection message sent to unregistered agent', {
           phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(phoneNumber.length - 7),
@@ -268,10 +267,7 @@ async function processMessageAsync(
       // Send WhatsApp reply using WhatsApp service
       const whatsappService = new WhatsAppService({ supabaseClient: supabase });
       const sendResult = await whatsappService.sendMessage(
-        {
-          phoneNumber: phoneNumber,
-          messageText: aiResponse.text,
-        },
+        { phoneNumber, messageText: aiResponse.text },
         agent.id
       );
 
