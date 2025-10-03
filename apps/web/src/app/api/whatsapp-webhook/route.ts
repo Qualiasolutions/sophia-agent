@@ -274,7 +274,31 @@ async function processMessageAsync(
         messageId,
         phoneNumber,
         error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       });
+
+      // Send fallback error message to user
+      try {
+        const whatsappService = new WhatsAppService({ supabaseClient: supabase });
+        const fallbackMessage = "I'm having trouble processing your request right now. Please try again in a moment.";
+
+        await whatsappService.sendMessage(
+          { phoneNumber, messageText: fallbackMessage },
+          agentId || undefined
+        );
+
+        console.log('Fallback error message sent to user', {
+          agentId,
+          messageId,
+          phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(phoneNumber.length - 7),
+        });
+      } catch (fallbackError) {
+        console.error('Failed to send fallback error message', {
+          agentId,
+          messageId,
+          error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
+        });
+      }
     }
   } catch (error) {
     console.error('Error processing message', {

@@ -57,14 +57,14 @@ export class OpenAIService {
 
     this.client = new OpenAI({
       apiKey,
-      timeout: 3000, // 3 seconds timeout
+      timeout: 10000, // 10 seconds timeout (increased for reliability)
     });
 
     this.config = {
       model: GPT_MODEL,
       temperature: 0.7,
       maxTokens: 500,
-      timeout: 3000,
+      timeout: 10000,
     };
 
     this.systemPrompt = SYSTEM_PROMPT;
