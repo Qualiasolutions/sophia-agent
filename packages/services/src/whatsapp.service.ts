@@ -80,18 +80,29 @@ export class WhatsAppService {
 
   constructor(options?: WhatsAppServiceOptions) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
-    if (!accountSid || !authToken || !fromNumber) {
+    // Support both API Key (recommended) and Auth Token (legacy) authentication
+    const apiKeySid = process.env.TWILIO_API_KEY_SID;
+    const apiKeySecret = process.env.TWILIO_API_KEY_SECRET;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !fromNumber) {
       throw new Error(
-        'Missing required environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_WHATSAPP_NUMBER'
+        'Missing required environment variables: TWILIO_ACCOUNT_SID or TWILIO_WHATSAPP_NUMBER'
+      );
+    }
+
+    // Prefer API Key over Auth Token (more secure)
+    if (!apiKeySid && !authToken) {
+      throw new Error(
+        'Missing authentication: Set either TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET or TWILIO_AUTH_TOKEN'
       );
     }
 
     this.config = {
       accountSid,
-      authToken,
+      authToken: apiKeySecret || authToken!, // Use API Key Secret if available, otherwise Auth Token
       fromNumber,
       baseUrl: `https://api.twilio.com/${TWILIO_API_VERSION}`,
     };
@@ -253,12 +264,15 @@ export class WhatsAppService {
     });
 
     try {
+      // Determine auth username (API Key SID if available, otherwise Account SID)
+      const authUsername = process.env.TWILIO_API_KEY_SID || this.config.accountSid;
+
       const response = await axios.post(url, params.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         auth: {
-          username: this.config.accountSid,
+          username: authUsername,
           password: this.config.authToken,
         },
       });
