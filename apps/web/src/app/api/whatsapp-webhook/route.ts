@@ -165,7 +165,7 @@ async function processMessageAsync(
   const supabase = createAdminClient();
 
   try {
-    // Lookup agent by phone number
+    // Lookup agent by phone number (optional for sandbox mode)
     console.log('DEBUG: Looking up agent', {
       phoneNumber,
       phoneNumberLength: phoneNumber.length,
@@ -188,59 +188,22 @@ async function processMessageAsync(
       errorMessage: agentError?.message
     });
 
-    if (agentError || !agent) {
-      console.warn('Unregistered agent attempted to contact Sophia', {
+    // If agent not found, continue anyway (sandbox mode - allow all users)
+    const agentId = agent?.id || null;
+    const agentName = agent?.name || 'Guest User';
+
+    if (!agent) {
+      console.log('Guest user (unregistered) accessing Sophia', {
         phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(phoneNumber.length - 7),
         messageId,
-        error: agentError?.message,
       });
-
-      // Send polite rejection message to unregistered agent
-      try {
-        const whatsappService = new WhatsAppService({ supabaseClient: supabase });
-        const rejectionMessage = "Hi! I'm Sophia, the AI assistant for zyprus.com agents. This service is currently available only to registered agents. Please contact your administrator for access.";
-
-        await whatsappService.sendMessage(
-          { phoneNumber, messageText: rejectionMessage }
-        );
-
-        console.log('Rejection message sent to unregistered agent', {
-          phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(phoneNumber.length - 7),
-          messageId,
-        });
-
-        // Log unregistered agent attempt to database
-        await supabase.from('conversation_logs').insert({
-          agent_id: null, // No agent ID for unregistered attempts
-          message_text: messageText,
-          direction: 'inbound',
-          timestamp: new Date().toISOString(),
-          message_id: messageId,
-        });
-
-        await supabase.from('conversation_logs').insert({
-          agent_id: null,
-          message_text: rejectionMessage,
-          direction: 'outbound',
-          timestamp: new Date().toISOString(),
-          message_id: `${messageId}_rejection`,
-        });
-      } catch (error) {
-        console.error('Error sending rejection message to unregistered agent', {
-          phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(phoneNumber.length - 7),
-          messageId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-
-      return; // Exit without OpenAI processing
     }
 
     // Log inbound message to conversation_logs
     const { error: insertError } = await supabase
       .from('conversation_logs')
       .insert({
-        agent_id: agent.id,
+        agent_id: agentId,
         message_text: messageText,
         direction: 'inbound',
         timestamp: new Date().toISOString(),
@@ -262,7 +225,7 @@ async function processMessageAsync(
       }
     } else {
       console.log('Inbound message logged successfully', {
-        agentId: agent.id,
+        agentId,
         messageId,
         phoneNumber,
       });
@@ -272,11 +235,11 @@ async function processMessageAsync(
     try {
       const openaiService = new OpenAIService();
       const aiResponse = await openaiService.generateResponse(messageText, {
-        agentId: agent.id,
+        agentId: agentId || 'guest',
       });
 
       console.log('AI response generated', {
-        agentId: agent.id,
+        agentId,
         messageId,
         responseLength: aiResponse.text.length,
         tokensUsed: aiResponse.tokensUsed.total,
@@ -288,19 +251,19 @@ async function processMessageAsync(
       const whatsappService = new WhatsAppService({ supabaseClient: supabase });
       const sendResult = await whatsappService.sendMessage(
         { phoneNumber, messageText: aiResponse.text },
-        agent.id
+        agentId || undefined
       );
 
       if (sendResult.success) {
         console.log('WhatsApp reply sent successfully', {
-          agentId: agent.id,
+          agentId,
           originalMessageId: messageId,
           replyMessageId: sendResult.messageId,
           phoneNumber,
         });
       } else {
         console.error('Failed to send WhatsApp reply', {
-          agentId: agent.id,
+          agentId,
           originalMessageId: messageId,
           error: sendResult.error,
           phoneNumber,
@@ -308,7 +271,7 @@ async function processMessageAsync(
       }
     } catch (error) {
       console.error('Error generating AI response or sending reply', {
-        agentId: agent.id,
+        agentId,
         messageId,
         phoneNumber,
         error: error instanceof Error ? error.message : 'Unknown error',
