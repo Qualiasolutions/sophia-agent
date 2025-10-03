@@ -190,7 +190,6 @@ async function processMessageAsync(
 
     // If agent not found, continue anyway (sandbox mode - allow all users)
     const agentId = agent?.id || null;
-    const agentName = agent?.name || 'Guest User';
 
     if (!agent) {
       console.log('Guest user (unregistered) accessing Sophia', {
