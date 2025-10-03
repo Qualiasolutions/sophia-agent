@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
     );
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
-    const status = searchParams.get('status') || 'active';
+    const isActive = searchParams.get('active') !== 'false'; // Default to true
 
     let query = supabase
       .from('document_templates')
       .select('*')
-      .eq('status', status)
+      .eq('is_active', isActive)
       .order('category', { ascending: true })
       .order('name', { ascending: true });
 

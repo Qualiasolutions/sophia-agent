@@ -64,10 +64,11 @@ describe('WhatsApp Webhook', () => {
       });
 
       const response = await POST(request);
-      const data = await response.json();
+      const text = await response.text();
 
       expect(response.status).toBe(200);
-      expect(data.status).toBe('success');
+      expect(response.headers.get('Content-Type')).toBe('text/xml');
+      expect(text).toBe('<Response></Response>');
     });
 
     it('should return 200 OK for missing Body field', async () => {
@@ -82,11 +83,11 @@ describe('WhatsApp Webhook', () => {
       });
 
       const response = await POST(request);
-      const data = await response.json();
+      const text = await response.text();
 
       expect(response.status).toBe(200);
-      expect(data.status).toBe('error');
-      expect(data.message).toBe('Invalid payload');
+      expect(response.headers.get('Content-Type')).toBe('text/xml');
+      expect(text).toBe('<Response></Response>');
     });
 
     it('should return 200 OK for missing From field', async () => {
@@ -101,11 +102,11 @@ describe('WhatsApp Webhook', () => {
       });
 
       const response = await POST(request);
-      const data = await response.json();
+      const text = await response.text();
 
       expect(response.status).toBe(200);
-      expect(data.status).toBe('error');
-      expect(data.message).toBe('Invalid payload');
+      expect(response.headers.get('Content-Type')).toBe('text/xml');
+      expect(text).toBe('<Response></Response>');
     });
 
     it('should return 200 OK for missing MessageSid field', async () => {
@@ -120,11 +121,11 @@ describe('WhatsApp Webhook', () => {
       });
 
       const response = await POST(request);
-      const data = await response.json();
+      const text = await response.text();
 
       expect(response.status).toBe(200);
-      expect(data.status).toBe('error');
-      expect(data.message).toBe('Invalid payload');
+      expect(response.headers.get('Content-Type')).toBe('text/xml');
+      expect(text).toBe('<Response></Response>');
     });
 
     it('should strip whatsapp: prefix from phone number', async () => {
@@ -229,9 +230,9 @@ describe('WhatsApp Webhook', () => {
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Verify warning was logged about unregistered agent
-      expect(console.warn).toHaveBeenCalledWith(
-        'Unregistered agent attempted to contact Sophia',
+      // Verify log was written about guest user (sandbox mode allows all users now)
+      expect(console.log).toHaveBeenCalledWith(
+        'Guest user (unregistered) accessing Sophia',
         expect.any(Object)
       );
     });

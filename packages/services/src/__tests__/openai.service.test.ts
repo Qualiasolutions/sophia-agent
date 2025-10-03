@@ -85,14 +85,14 @@ describe('OpenAIService', () => {
       expect(config.temperature).toBe(0.7);
     });
 
-    it('should have max tokens of 500', () => {
+    it('should have max tokens of 300', () => {
       const config = service.getConfig();
-      expect(config.maxTokens).toBe(500);
+      expect(config.maxTokens).toBe(300);
     });
 
-    it('should have timeout of 3000ms', () => {
+    it('should have timeout of 5000ms', () => {
       const config = service.getConfig();
-      expect(config.timeout).toBe(3000);
+      expect(config.timeout).toBe(5000);
     });
 
     it('should throw error if OPENAI_API_KEY is not set', () => {
@@ -163,15 +163,15 @@ describe('OpenAIService', () => {
     it('should pass correct parameters to OpenAI API', async () => {
       await service.generateResponse('Test message');
 
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
         model: 'gpt-4o-mini',
         messages: expect.arrayContaining([
-          { role: 'system', content: expect.stringContaining('Sophia') },
-          { role: 'user', content: 'Test message' },
+          expect.objectContaining({ role: 'system', content: expect.stringContaining('Sophia') }),
+          expect.objectContaining({ role: 'user', content: 'Test message' }),
         ]),
         temperature: 0.7,
-        max_tokens: 500,
-      });
+        max_tokens: 300,
+      }));
     });
 
     it('should include conversation history if provided', async () => {

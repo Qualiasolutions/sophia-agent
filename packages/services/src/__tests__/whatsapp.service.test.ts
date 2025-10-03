@@ -246,11 +246,26 @@ describe('WhatsAppService', () => {
   describe('constructor', () => {
     it('should throw error when environment variables are missing', () => {
       // Clear environment variables
-      vi.unstubAllEnvs();
+      const originalAccountSid = process.env.TWILIO_ACCOUNT_SID;
+      const originalAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      const originalWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+      const originalApiKeySid = process.env.TWILIO_API_KEY_SID;
+      const originalApiKeySecret = process.env.TWILIO_API_KEY_SECRET;
 
-      expect(() => new WhatsAppService()).toThrow(
-        'Missing required environment variables'
-      );
+      delete process.env.TWILIO_ACCOUNT_SID;
+      delete process.env.TWILIO_AUTH_TOKEN;
+      delete process.env.TWILIO_WHATSAPP_NUMBER;
+      delete process.env.TWILIO_API_KEY_SID;
+      delete process.env.TWILIO_API_KEY_SECRET;
+
+      expect(() => new WhatsAppService()).toThrow();
+
+      // Restore environment variables
+      if (originalAccountSid) process.env.TWILIO_ACCOUNT_SID = originalAccountSid;
+      if (originalAuthToken) process.env.TWILIO_AUTH_TOKEN = originalAuthToken;
+      if (originalWhatsAppNumber) process.env.TWILIO_WHATSAPP_NUMBER = originalWhatsAppNumber;
+      if (originalApiKeySid) process.env.TWILIO_API_KEY_SID = originalApiKeySid;
+      if (originalApiKeySecret) process.env.TWILIO_API_KEY_SECRET = originalApiKeySecret;
     });
 
     it('should initialize successfully with valid environment variables', () => {

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       .from('document_templates')
       .select('*')
       .eq('id', template_id)
-      .eq('status', 'active')
+      .eq('is_active', true)
       .single();
 
     if (fetchError || !template) {
@@ -82,16 +82,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Lookup agent_id from phone number
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id')
+      .eq('phone_number', agent_phone_number)
+      .single();
+
+    if (agentError || !agent) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Agent not found for phone number',
+        },
+        { status: 404 }
+      );
+    }
+
+    const startTime = Date.now();
+
     // Log the document generation
     const { data: generation, error: logError } = await supabase
       .from('document_generations')
       .insert({
         template_id,
-        agent_id: agent_phone_number, // Lookup agent_id from phone
-        variables_used: variables,
+        agent_id: agent.id,
+        variables_provided: variables,
         generated_content: rendered.content,
-        delivery_method: 'whatsapp',
-        delivery_status: 'pending',
+        generation_time_ms: Date.now() - startTime,
       })
       .select()
       .single();
@@ -112,8 +130,8 @@ export async function POST(request: NextRequest) {
 
       try {
         const result = await whatsappService.sendMessage(
-          agent_phone_number,
-          message
+          { phoneNumber: agent_phone_number, messageText: message },
+          agent.id
         );
         deliveryResults.push({ chunk: i + 1, success: result.success });
       } catch (error) {
@@ -122,17 +140,6 @@ export async function POST(request: NextRequest) {
     }
 
     const allDelivered = deliveryResults.every((r) => r.success);
-
-    // Update delivery status
-    if (generation) {
-      await supabase
-        .from('document_generations')
-        .update({
-          delivery_status: allDelivered ? 'delivered' : 'failed',
-          delivered_at: allDelivered ? new Date().toISOString() : null,
-        })
-        .eq('id', generation.id);
-    }
 
     return NextResponse.json({
       success: true,
