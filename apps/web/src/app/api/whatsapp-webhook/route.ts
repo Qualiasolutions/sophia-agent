@@ -232,10 +232,23 @@ async function processMessageAsync(
 
     // Generate AI response using OpenAI service
     try {
+      console.log('DEBUG: Creating OpenAIService instance', {
+        hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+        openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+      });
+
       const openaiService = new OpenAIService();
+
+      console.log('DEBUG: Calling generateResponse', {
+        messageText,
+        agentId,
+      });
+
       const aiResponse = await openaiService.generateResponse(messageText, {
         agentId: agentId || 'guest',
       });
+
+      console.log('DEBUG: generateResponse completed successfully');
 
       console.log('AI response generated', {
         agentId,
