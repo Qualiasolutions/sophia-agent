@@ -61,8 +61,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Strip 'whatsapp:' prefix from phone number (Twilio format: whatsapp:+1234567890)
-    const phoneNumber = fromNumber.replace('whatsapp:', '');
+    // Strip 'whatsapp:' prefix and all whitespace from phone number
+    // Twilio may send: whatsapp:+357 99111668 or whatsapp:+35799111668
+    // Normalize to: +35799111668 for database lookup
+    const phoneNumber = fromNumber.replace('whatsapp:', '').replace(/\s/g, '');
 
     // Acknowledge receipt immediately (within 5 seconds requirement)
     // Process message asynchronously without blocking response
