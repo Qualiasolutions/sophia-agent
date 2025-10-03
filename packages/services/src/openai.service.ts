@@ -94,10 +94,17 @@ export class OpenAIService {
         });
 
         const assistantService = getAssistantService();
+        // Filter out system messages for Assistant (it only accepts user/assistant roles)
+        const assistantHistory = (context?.messageHistory || [])
+          .filter((msg) => msg.role !== 'system')
+          .map((msg) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          }));
         const assistantResponse = await assistantService.generateDocument(
           context?.agentId || 'guest',
           message,
-          context?.messageHistory || []
+          assistantHistory
         );
 
         // Convert Assistant response to AIResponse format

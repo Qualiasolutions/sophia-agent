@@ -123,6 +123,11 @@ export class AssistantService {
       });
 
       const assistantMessage = messages.data[0];
+
+      if (!assistantMessage) {
+        throw new Error('No assistant response received');
+      }
+
       const textContent = assistantMessage.content.find(
         (content) => content.type === 'text'
       );
@@ -186,7 +191,9 @@ export class AssistantService {
     let attempts = 0;
 
     while (attempts < MAX_POLL_ATTEMPTS) {
-      const run = await this.client.beta.threads.runs.retrieve(threadId, runId);
+      const run = await this.client.beta.threads.runs.retrieve(runId, {
+        thread_id: threadId,
+      });
 
       if (run.status === 'completed') {
         return run;

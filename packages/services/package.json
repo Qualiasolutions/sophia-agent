@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
+    "build": "echo 'Services package - no build needed (transpiled by Next.js)'",
     "test": "vitest run",
     "test:watch": "vitest"
   },
