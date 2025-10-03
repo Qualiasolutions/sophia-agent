@@ -68,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Acknowledge receipt immediately (within 5 seconds requirement)
     // Process message asynchronously without blocking response
-    processMessageAsync(phoneNumber, messageBody, messageSid).catch((error) => {
+    const asyncPromise = processMessageAsync(phoneNumber, messageBody, messageSid).catch((error) => {
       console.error('CRITICAL: Unhandled error in async message processing', {
         phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(Math.max(0, phoneNumber.length - 7)),
         messageId: messageSid,
@@ -76,6 +76,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         stack: error instanceof Error ? error.stack : undefined,
       });
     });
+
+    // Tell Vercel to wait for async processing to complete (up to 10s on hobby tier)
+    if (request.waitUntil) {
+      request.waitUntil(asyncPromise);
+    }
 
     // Return empty TwiML response (Twilio expects XML, not JSON)
     return new NextResponse('<Response></Response>', {
