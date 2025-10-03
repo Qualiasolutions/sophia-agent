@@ -1,6 +1,5 @@
 {
-  "buildCommand": "turbo run build --filter=web",
-  "installCommand": "npm install",
-  "framework": null,
+  "buildCommand": "cd apps/web && npm run build",
+  "installCommand": "npm ci",
   "outputDirectory": "apps/web/.next"
 }
