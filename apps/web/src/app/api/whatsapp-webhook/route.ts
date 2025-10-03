@@ -230,11 +230,28 @@ async function processMessageAsync(
       });
     }
 
+    // Fetch recent conversation history for context (last 10 messages)
+    const { data: conversationHistory } = await supabase
+      .from('conversation_logs')
+      .select('message_text, direction, timestamp')
+      .eq('agent_id', agentId)
+      .order('timestamp', { ascending: false })
+      .limit(10);
+
+    // Convert to OpenAI message format (reverse to chronological order)
+    const messageHistory = conversationHistory
+      ?.reverse()
+      .map((msg) => ({
+        role: msg.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+        content: msg.message_text,
+      })) || [];
+
     // Generate AI response using OpenAI service
     try {
       console.log('DEBUG: Creating OpenAIService instance', {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+        historyCount: messageHistory.length,
       });
 
       const openaiService = new OpenAIService();
@@ -242,10 +259,12 @@ async function processMessageAsync(
       console.log('DEBUG: Calling generateResponse', {
         messageText,
         agentId,
+        historyCount: messageHistory.length,
       });
 
       const aiResponse = await openaiService.generateResponse(messageText, {
         agentId: agentId || 'guest',
+        messageHistory,
       });
 
       console.log('DEBUG: generateResponse completed successfully');
