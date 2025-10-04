@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import html2canvas from 'html2canvas';
 import {
   LineChart,
   Line,
@@ -37,11 +38,87 @@ interface AnalyticsData {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
+// Export utility functions
+const exportChartAsPNG = async (elementId: string, filename: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#ffffff',
+      scale: 2, // Higher quality
+    });
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `${filename}.png`;
+    link.href = dataURL;
+    link.click();
+  } catch (error) {
+    console.error('Failed to export chart:', error);
+    alert('Failed to export chart. Please try again.');
+  }
+};
+
+const exportDataAsCSV = (data: Record<string, string | number>[], filename: string) => {
+  if (!data || data.length === 0) {
+    alert('No data available to export');
+    return;
+  }
+
+  try {
+    const firstRow = data[0];
+    if (!firstRow) {
+      alert('No data available to export');
+      return;
+    }
+
+    const headers = Object.keys(firstRow).join(',');
+    const rows = data.map(row =>
+      Object.values(row)
+        .map(value => {
+          // Escape commas and quotes in CSV
+          const stringValue = String(value);
+          if (stringValue.includes(',') || stringValue.includes('"')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(',')
+    );
+    const csv = [headers, ...rows].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${filename}.csv`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to export CSV:', error);
+    alert('Failed to export CSV. Please try again.');
+  }
+};
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30'); // days
+
+  const exportAll = useCallback(() => {
+    if (!data) return;
+
+    // Export all data as CSV files
+    exportDataAsCSV(data.messagesPerDay, 'messages-per-day');
+    exportDataAsCSV(data.documentsPerDay, 'documents-per-day');
+    exportDataAsCSV(data.calculatorsPerDay, 'calculators-per-day');
+    exportDataAsCSV(data.documentTypes, 'document-types');
+    exportDataAsCSV(data.calculatorTypes, 'calculator-types');
+    exportDataAsCSV(data.topAgents, 'top-agents');
+
+    alert('All data exported successfully!');
+  }, [data]);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -98,7 +175,7 @@ export default function AnalyticsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-semibold text-gray-900">Analytics</h1>
           <p className="mt-2 text-sm text-gray-700">
@@ -106,16 +183,26 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        {/* Date Range Selector */}
-        <select
-          value={dateRange}
-          onChange={(e) => setDateRange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
+        <div className="flex items-center gap-3">
+          {/* Export All Button */}
+          <button
+            onClick={exportAll}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm font-medium"
+          >
+            📥 Export All
+          </button>
+
+          {/* Date Range Selector */}
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -141,8 +228,24 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Messages Over Time */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Messages Over Time</h2>
+      <div className="bg-white shadow rounded-lg p-6 mb-6" id="messages-chart">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Messages Over Time</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportChartAsPNG('messages-chart', 'messages-over-time')}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            >
+              📊 PNG
+            </button>
+            <button
+              onClick={() => exportDataAsCSV(data.messagesPerDay, 'messages-over-time')}
+              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+            >
+              📄 CSV
+            </button>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data.messagesPerDay}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -169,10 +272,26 @@ export default function AnalyticsPage() {
 
       {/* Documents and Calculators */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Documents Generated
-          </h2>
+        <div className="bg-white shadow rounded-lg p-6" id="documents-chart">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Documents Generated
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportChartAsPNG('documents-chart', 'documents-generated')}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                📊 PNG
+              </button>
+              <button
+                onClick={() => exportDataAsCSV(data.documentsPerDay, 'documents-generated')}
+                className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                📄 CSV
+              </button>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={data.documentsPerDay}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -196,10 +315,26 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Calculator Usage
-          </h2>
+        <div className="bg-white shadow rounded-lg p-6" id="calculators-chart">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Calculator Usage
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportChartAsPNG('calculators-chart', 'calculator-usage')}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                📊 PNG
+              </button>
+              <button
+                onClick={() => exportDataAsCSV(data.calculatorsPerDay, 'calculator-usage')}
+                className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                📄 CSV
+              </button>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={data.calculatorsPerDay}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -226,10 +361,26 @@ export default function AnalyticsPage() {
 
       {/* Distribution Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Document Types
-          </h2>
+        <div className="bg-white shadow rounded-lg p-6" id="document-types-chart">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Document Types
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportChartAsPNG('document-types-chart', 'document-types')}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                📊 PNG
+              </button>
+              <button
+                onClick={() => exportDataAsCSV(data.documentTypes, 'document-types')}
+                className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                📄 CSV
+              </button>
+            </div>
+          </div>
           {data.documentTypes.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -257,10 +408,26 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Calculator Types
-          </h2>
+        <div className="bg-white shadow rounded-lg p-6" id="calculator-types-chart">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Calculator Types
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportChartAsPNG('calculator-types-chart', 'calculator-types')}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                📊 PNG
+              </button>
+              <button
+                onClick={() => exportDataAsCSV(data.calculatorTypes, 'calculator-types')}
+                className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                📄 CSV
+              </button>
+            </div>
+          </div>
           {data.calculatorTypes.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -290,10 +457,26 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Agents */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Most Active Agents
-        </h2>
+      <div className="bg-white shadow rounded-lg p-6" id="top-agents-chart">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">
+            Most Active Agents
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportChartAsPNG('top-agents-chart', 'top-agents')}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            >
+              📊 PNG
+            </button>
+            <button
+              onClick={() => exportDataAsCSV(data.topAgents, 'top-agents')}
+              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+            >
+              📄 CSV
+            </button>
+          </div>
+        </div>
         {data.topAgents.length > 0 ? (
           <div className="space-y-3">
             {data.topAgents.map((agent, index) => (
