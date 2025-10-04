@@ -18,7 +18,7 @@ export interface TemplateVariable {
   };
 }
 
-export interface DocumentTemplate {
+export interface DatabaseDocumentTemplate {
   id: string;
   name: string;
   category: string;

@@ -10,7 +10,6 @@
  */
 
 import {
-  DocumentTemplate,
   DocumentField,
   getDocumentTemplate,
   getMissingFields,
@@ -45,12 +44,12 @@ export class DocumentValidatorService {
 
       // Strategy: Mask the part after the first numeric group
       // Check if first part is country code (starts with + or is 2-3 digits)
-      const hasCountryCode = parts[0].startsWith('+');
+      const hasCountryCode = parts[0]?.startsWith('+') ?? false;
 
       // The second numeric part (after country code if present, otherwise second part)
       const maskIndex = hasCountryCode ? 2 : 1; // Index of part to mask
 
-      if (parts.length > maskIndex && parts[maskIndex].length >= 2) {
+      if (parts.length > maskIndex && parts[maskIndex] && parts[maskIndex].length >= 2) {
         parts[maskIndex] = '**';
         return parts.join(' ');
       }
@@ -340,7 +339,7 @@ export class DocumentValidatorService {
    */
   static formatPropertyLinks(links: string[]): string {
     if (links.length === 0) return '';
-    if (links.length === 1) return links[0]; // Single link, no numbering
+    if (links.length === 1) return links[0] ?? ''; // Single link, no numbering
 
     // Multiple links: format as Property 1: [LINK], Property 2: [LINK]
     return links

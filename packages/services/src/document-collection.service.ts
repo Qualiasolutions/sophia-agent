@@ -11,11 +11,9 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
-  DocumentTemplate,
   DocumentRequestSession,
   getDocumentTemplate,
   getMissingFields,
-  DocumentCategory,
 } from '@sophiaai/shared';
 import { DocumentValidatorService } from './document-validator.service';
 
@@ -267,7 +265,7 @@ export class DocumentCollectionService {
 
     // Percentages (for fees)
     const percentMatch = message.match(/(\d+)%/);
-    if (percentMatch) {
+    if (percentMatch && percentMatch[1]) {
       const feeField = template.fields.find(
         (f) =>
           f.name.includes('fee') &&
