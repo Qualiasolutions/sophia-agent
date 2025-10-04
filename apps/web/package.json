@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@monaco-editor/react": "^4.7.0",
     "@sophiaai/services": "file:../../packages/services",
     "@sophiaai/shared": "file:../../packages/shared",
     "@supabase/supabase-js": "^2.58.0",
