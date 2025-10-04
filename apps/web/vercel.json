@@ -1,4 +1,4 @@
 {
-  "buildCommand": "npx turbo run build --filter=web",
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next"
 }
