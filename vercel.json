@@ -1,5 +1,5 @@
 {
-  "buildCommand": "turbo run build",
-  "installCommand": "npm install",
-  "outputDirectory": ".next"
+  "buildCommand": "cd ../.. && turbo run build",
+  "installCommand": "cd ../.. && npm install",
+  "outputDirectory": "apps/web/.next"
 }
