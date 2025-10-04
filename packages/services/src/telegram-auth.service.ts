@@ -149,5 +149,23 @@ export class TelegramAuthService {
   }
 }
 
-// Export singleton instance
-export const telegramAuthService = new TelegramAuthService();
+// Lazy singleton instance
+let _instance: TelegramAuthService | null = null;
+
+export function getTelegramAuthService(): TelegramAuthService {
+  if (!_instance) {
+    _instance = new TelegramAuthService();
+  }
+  return _instance;
+}
+
+// Deprecated: use getTelegramAuthService() instead
+// This is for backward compatibility
+export const telegramAuthService = {
+  get isUserRegistered() { return getTelegramAuthService().isUserRegistered.bind(getTelegramAuthService()); },
+  get getTelegramUser() { return getTelegramAuthService().getTelegramUser.bind(getTelegramAuthService()); },
+  get getAgentByEmail() { return getTelegramAuthService().getAgentByEmail.bind(getTelegramAuthService()); },
+  get registerTelegramUser() { return getTelegramAuthService().registerTelegramUser.bind(getTelegramAuthService()); },
+  get updateLastActive() { return getTelegramAuthService().updateLastActive.bind(getTelegramAuthService()); },
+  get deactivateTelegramUser() { return getTelegramAuthService().deactivateTelegramUser.bind(getTelegramAuthService()); },
+};

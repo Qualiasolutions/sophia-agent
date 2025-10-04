@@ -185,5 +185,19 @@ export class MessageForwardService {
   }
 }
 
-// Export singleton instance
-export const messageForwardService = new MessageForwardService();
+// Lazy singleton instance
+let _instance: MessageForwardService | null = null;
+
+export function getMessageForwardService(): MessageForwardService {
+  if (!_instance) {
+    _instance = new MessageForwardService();
+  }
+  return _instance;
+}
+
+// Deprecated: use getMessageForwardService() instead
+// This is for backward compatibility
+export const messageForwardService = {
+  get forwardToWhatsApp() { return getMessageForwardService().forwardToWhatsApp.bind(getMessageForwardService()); },
+  get getForwardHistory() { return getMessageForwardService().getForwardHistory.bind(getMessageForwardService()); },
+};

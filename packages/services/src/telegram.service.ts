@@ -16,12 +16,13 @@ export class TelegramService {
   private retryDelay = 1000; // 1 second initial delay
 
   constructor() {
-    this.botToken = process.env.TELEGRAM_BOT_TOKEN!;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-    if (!this.botToken) {
+    if (!botToken) {
       throw new Error('TELEGRAM_BOT_TOKEN environment variable is required');
     }
 
+    this.botToken = botToken;
     this.baseUrl = `https://api.telegram.org/bot${this.botToken}`;
   }
 
@@ -133,5 +134,21 @@ export class TelegramService {
   }
 }
 
-// Export singleton instance
-export const telegramService = new TelegramService();
+// Lazy singleton instance
+let _instance: TelegramService | null = null;
+
+export function getTelegramService(): TelegramService {
+  if (!_instance) {
+    _instance = new TelegramService();
+  }
+  return _instance;
+}
+
+// Deprecated: use getTelegramService() instead
+// This is for backward compatibility
+export const telegramService = {
+  get sendMessage() { return getTelegramService().sendMessage.bind(getTelegramService()); },
+  get setWebhook() { return getTelegramService().setWebhook.bind(getTelegramService()); },
+  get getWebhookInfo() { return getTelegramService().getWebhookInfo.bind(getTelegramService()); },
+  get deleteWebhook() { return getTelegramService().deleteWebhook.bind(getTelegramService()); },
+};
