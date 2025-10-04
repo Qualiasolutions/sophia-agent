@@ -323,26 +323,29 @@
   },
   "epic_4": {
     "name": "Property Listing Management",
-    "status": "pending",
+    "status": "blocked",
+    "blocker_reason": "No zyprus.com API access - SKIP indefinitely",
     "stories": {
-      "4.1": { "name": "Listing Database Schema & Data Models", "status": "pending", "agent": "database-architect" },
-      "4.2": { "name": "zyprus.com API Discovery & Integration Setup", "status": "pending", "agent": "integration-specialist" },
-      "4.3": { "name": "Conversational Listing Creation Workflow", "status": "pending", "agent": "ai-llm-specialist" },
-      "4.4": { "name": "Listing Data Validation & Enrichment", "status": "pending", "agent": "backend-developer" },
-      "4.5": { "name": "zyprus.com Listing Upload Integration", "status": "pending", "agent": "integration-specialist" },
-      "4.6": { "name": "End-to-End Listing Creation & Upload", "status": "pending", "agent": "backend-developer" },
-      "4.7": { "name": "Listing Status Tracking & Retrieval", "status": "pending", "agent": "backend-developer" },
-      "4.8": { "name": "Listing Upload Error Handling & Retry", "status": "pending", "agent": "backend-developer" },
-      "4.9": { "name": "Listing Conversation Interruption & Resume", "status": "pending", "agent": "ai-llm-specialist" }
+      "4.1": { "name": "Listing Database Schema & Data Models", "status": "blocked", "agent": "database-architect" },
+      "4.2": { "name": "zyprus.com API Discovery & Integration Setup", "status": "blocked", "agent": "integration-specialist" },
+      "4.3": { "name": "Conversational Listing Creation Workflow", "status": "blocked", "agent": "ai-llm-specialist" },
+      "4.4": { "name": "Listing Data Validation & Enrichment", "status": "blocked", "agent": "backend-developer" },
+      "4.5": { "name": "zyprus.com Listing Upload Integration", "status": "blocked", "agent": "integration-specialist" },
+      "4.6": { "name": "End-to-End Listing Creation & Upload", "status": "blocked", "agent": "backend-developer" },
+      "4.7": { "name": "Listing Status Tracking & Retrieval", "status": "blocked", "agent": "backend-developer" },
+      "4.8": { "name": "Listing Upload Error Handling & Retry", "status": "blocked", "agent": "backend-developer" },
+      "4.9": { "name": "Listing Conversation Interruption & Resume", "status": "blocked", "agent": "ai-llm-specialist" }
     },
-    "blockers": [],
-    "notes": ["Requires zyprus.com API documentation and test credentials"]
+    "blockers": ["No zyprus.com API documentation", "No API credentials", "No test environment"],
+    "notes": ["Epic 4 marked as SKIP - will not be implemented unless zyprus.com API becomes available"],
+    "decision": "SKIP - prioritize Epic 5 and Epic 6 instead"
   },
   "epic_5": {
     "name": "Email Integration",
-    "status": "pending",
+    "status": "blocked",
+    "blocker_reason": "Gmail API OAuth credentials for sophia@zyprus.com not yet available",
     "stories": {
-      "5.1": { "name": "Gmail API Setup & OAuth Configuration", "status": "pending", "agent": "integration-specialist" },
+      "5.1": { "name": "Gmail API Setup & OAuth Configuration", "status": "blocked", "agent": "integration-specialist" },
       "5.2": { "name": "Email Database Schema & Logging", "status": "pending", "agent": "database-architect" },
       "5.3": { "name": "Send Email via Conversational Interface", "status": "pending", "agent": "ai-llm-specialist" },
       "5.4": { "name": "Forward Email Functionality", "status": "pending", "agent": "backend-developer" },
@@ -351,30 +354,130 @@
       "5.7": { "name": "Email Activity History & Retrieval", "status": "pending", "agent": "backend-developer" },
       "5.8": { "name": "Email Address Validation & Contact Management", "status": "pending", "agent": "backend-developer" }
     },
-    "blockers": [],
-    "notes": ["Requires Gmail API access for sophia@zyprus.com"]
+    "blockers": ["Gmail API OAuth 2.0 credentials for sophia@zyprus.com", "Google Workspace admin access to configure OAuth consent screen"],
+    "notes": [
+      "Requires Gmail API access for sophia@zyprus.com",
+      "Can proceed once OAuth credentials obtained from Google Cloud Console",
+      "Admin Dashboard (Epic 6 Stories 6.5-6.9) can proceed independently"
+    ],
+    "unblocking_requirements": [
+      "1. Create Google Cloud Project for Sophia",
+      "2. Enable Gmail API in project",
+      "3. Configure OAuth consent screen",
+      "4. Create OAuth 2.0 credentials (Client ID and Secret)",
+      "5. Add sophia@zyprus.com as authorized user",
+      "6. Provide credentials to development team"
+    ]
   },
   "epic_6": {
     "name": "Telegram Bot & Admin Dashboard",
-    "status": "pending",
-    "stories": {
-      "6.1": { "name": "Telegram Bot Setup & Webhook Integration", "status": "pending", "agent": "integration-specialist" },
-      "6.2": { "name": "Telegram User Authentication & Registration", "status": "pending", "agent": "database-architect" },
-      "6.3": { "name": "Telegram Message Forwarding Functionality", "status": "pending", "agent": "backend-developer" },
-      "6.4": { "name": "Basic Telegram Conversational Features", "status": "pending", "agent": "ai-llm-specialist" },
-      "6.5": { "name": "Admin Dashboard - Authentication & Layout", "status": "pending", "agent": "frontend-developer" },
-      "6.6": { "name": "Admin Dashboard - System Overview & Monitoring", "status": "pending", "agent": "frontend-developer" },
-      "6.7": { "name": "Admin Dashboard - Agent Management", "status": "pending", "agent": "frontend-developer" },
-      "6.8": { "name": "Admin Dashboard - Analytics & Reporting", "status": "pending", "agent": "frontend-developer" },
-      "6.9": { "name": "Admin Dashboard - Configuration & Template Management", "status": "pending", "agent": "frontend-developer" }
+    "status": "ready_to_start",
+    "planning_completion_date": "2025-10-04",
+    "blocker_status": {
+      "telegram_integration": "blocked_on_bot_token",
+      "admin_dashboard": "ready_no_blockers"
     },
-    "blockers": [],
-    "notes": []
+    "stories": {
+      "6.1": {
+        "name": "Telegram Bot Setup & Webhook Integration",
+        "status": "blocked",
+        "agent": "integration-specialist",
+        "blocker": "Telegram Bot Token from @BotFather required",
+        "story_file": "docs/stories/6.1-telegram-bot-setup.story.md"
+      },
+      "6.2": {
+        "name": "Telegram User Authentication & Registration",
+        "status": "pending",
+        "agent": "database-architect",
+        "depends_on": "6.1",
+        "story_file": "docs/stories/6.2-telegram-auth.story.md"
+      },
+      "6.3": {
+        "name": "Telegram Message Forwarding Functionality",
+        "status": "pending",
+        "agent": "backend-developer",
+        "depends_on": "6.2",
+        "story_file": "docs/stories/6.3-telegram-forwarding.story.md"
+      },
+      "6.4": {
+        "name": "Basic Telegram Conversational Features",
+        "status": "pending",
+        "agent": "ai-llm-specialist",
+        "depends_on": "6.3",
+        "story_file": "docs/stories/6.4-telegram-conversational.story.md"
+      },
+      "6.5": {
+        "name": "Admin Dashboard - Authentication & Layout",
+        "status": "ready",
+        "agent": "frontend-developer",
+        "depends_on": "none",
+        "story_file": "docs/stories/6.5-admin-dashboard-auth.story.md",
+        "notes": "Can start immediately - no blockers"
+      },
+      "6.6": {
+        "name": "Admin Dashboard - System Overview & Monitoring",
+        "status": "pending",
+        "agent": "frontend-developer",
+        "depends_on": "6.5",
+        "story_file": "docs/stories/6.6-admin-dashboard-overview.story.md"
+      },
+      "6.7": {
+        "name": "Admin Dashboard - Agent Management",
+        "status": "pending",
+        "agent": "frontend-developer",
+        "depends_on": "6.5",
+        "story_file": "docs/stories/6.7-admin-dashboard-agents.story.md"
+      },
+      "6.8": {
+        "name": "Admin Dashboard - Analytics & Reporting",
+        "status": "pending",
+        "agent": "frontend-developer",
+        "depends_on": "6.5",
+        "story_file": "docs/stories/6.8-admin-dashboard-analytics.story.md"
+      },
+      "6.9": {
+        "name": "Admin Dashboard - Configuration & Template Management",
+        "status": "pending",
+        "agent": "frontend-developer",
+        "depends_on": "6.5",
+        "story_file": "docs/stories/6.9-admin-dashboard-config.story.md"
+      }
+    },
+    "blockers": [
+      "Telegram Bot Token from @BotFather (for Stories 6.1-6.4 only)"
+    ],
+    "unblocking_requirements": {
+      "telegram_bot_token": {
+        "steps": [
+          "1. Open Telegram app",
+          "2. Search for @BotFather",
+          "3. Send command: /newbot",
+          "4. Choose bot name: 'Sophia Assistant' or 'Sophia Real Estate AI'",
+          "5. Choose username: sophia_zyprus_bot (must end in 'bot')",
+          "6. Copy bot token from BotFather",
+          "7. Add to .env.local: TELEGRAM_BOT_TOKEN=<token>",
+          "8. Add to Vercel production environment variables"
+        ],
+        "time_estimate": "5 minutes"
+      }
+    },
+    "notes": [
+      "All 9 story files created with comprehensive acceptance criteria and tasks",
+      "Admin Dashboard stories (6.5-6.9) can proceed immediately - no dependencies on Telegram",
+      "Telegram stories (6.1-6.4) blocked only on bot token - all planning complete",
+      "Estimated Epic 6 completion time: 24-32 hours of development",
+      "See EPIC-6-READINESS.md for full details"
+    ],
+    "planning_artifacts": {
+      "story_files_created": 9,
+      "total_lines_of_documentation": 3419,
+      "readiness_report": "EPIC-6-READINESS.md"
+    }
   },
   "metadata": {
     "created": "2025-10-03",
-    "last_updated": "2025-10-04T01:30:00Z",
-    "version": "1.5.0",
+    "last_updated": "2025-10-04T02:20:00Z",
+    "version": "1.6.0",
     "agents_configured": [
       "master-orchestrator",
       "database-architect",
@@ -387,7 +490,14 @@
     ],
     "last_completed_story": "3.7",
     "last_completed_epic": "epic_3",
-    "current_epic_in_progress": "epic_4",
-    "production_status": "epic_1_2_and_3_ready_for_deployment"
+    "current_epic_in_progress": "epic_6",
+    "production_status": "epic_1_2_and_3_deployed_operational",
+    "epic_planning_status": {
+      "epic_4": "BLOCKED - No zyprus.com API (SKIP)",
+      "epic_5": "BLOCKED - No Gmail OAuth credentials",
+      "epic_6": "READY - Story files complete, Telegram blocked on bot token, Admin Dashboard ready to start"
+    },
+    "current_test_status": "101/101 tests passing",
+    "deployment_url": "https://sophia-agent-eoqa67bpy-qualiasolutionscy.vercel.app"
   }
 }
