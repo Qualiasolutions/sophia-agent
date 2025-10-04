@@ -7,7 +7,8 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { requireAuth } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -22,10 +23,17 @@ interface Activity {
   timestamp: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Require authentication
-    await requireAuth();
+    // Check authentication
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const activities: Activity[] = [];
 
@@ -115,14 +123,6 @@ export async function GET() {
     return NextResponse.json({ activities: recentActivities });
   } catch (error) {
     console.error('Activity API error:', error);
-
-    if ((error as Error).message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to fetch recent activities' },
       { status: 500 }
