@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const { count: activeConversations, error: conversationsError } = await supabase
       .from('conversation_logs')
       .select('agent_id', { count: 'exact', head: true })
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
     if (conversationsError) throw conversationsError;
 
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const { count: messagesToday, error: messagesTodayError } = await supabase
       .from('conversation_logs')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', today.toISOString());
+      .gte('timestamp', today.toISOString());
 
     if (messagesTodayError) throw messagesTodayError;
 
