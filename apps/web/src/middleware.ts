@@ -11,8 +11,16 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow access to login page without authentication
-  if (pathname === '/admin/login') {
+  // Public paths that don't require authentication
+  const publicPaths = ['/admin/login', '/api/auth'];
+
+  // Allow access to public paths
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  // Only apply auth check to admin routes
+  if (!pathname.startsWith('/admin')) {
     return NextResponse.next();
   }
 
@@ -23,7 +31,7 @@ export async function middleware(request: NextRequest) {
   });
 
   // Redirect to login if not authenticated
-  if (!token && pathname.startsWith('/admin')) {
+  if (!token) {
     const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
