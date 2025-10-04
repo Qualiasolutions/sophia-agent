@@ -5,29 +5,38 @@
  * Protects admin routes - redirects unauthenticated users to login
  */
 
-import { NextResponse } from 'next/server';
-import { withAuth } from 'next-auth/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export default withAuth(
-  function middleware(_req) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow access to login page without authentication
+  if (pathname === '/admin/login') {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
-    pages: {
-      signIn: '/admin/login',
-    },
   }
-);
+
+  // Check if user is authenticated
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // Redirect to login if not authenticated
+  if (!token && pathname.startsWith('/admin')) {
+    const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
     /*
-     * Match all admin routes except login
-     * Using negative lookahead to exclude /admin/login
+     * Match all admin routes
      */
-    '/admin/:path((?!login).*)*',
+    '/admin/:path*',
   ],
 };
