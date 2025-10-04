@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { OpenAIService, WhatsAppService } from '@sophiaai/services';
+import { OpenAIService, WhatsAppService, CalculatorService } from '@sophiaai/services';
 
 /**
  * POST handler for Twilio WhatsApp webhook
@@ -277,7 +277,179 @@ async function processMessageAsync(
         costEstimate: `$${aiResponse.costEstimate.toFixed(6)}`,
         responseTime: `${aiResponse.responseTime}ms`,
         isAssistantResponse: !!(aiResponse.threadId && aiResponse.assistantId),
+        hasToolCalls: !!(aiResponse.toolCalls && aiResponse.toolCalls.length > 0),
       });
+
+      // Handle calculator function calls
+      let finalResponseText = aiResponse.text;
+      if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
+        console.log('[Calculator] Function calls detected', {
+          agentId,
+          toolCallCount: aiResponse.toolCalls.length,
+          functions: aiResponse.toolCalls.map(tc => tc.function.name),
+        });
+
+        const calculatorResults: string[] = [];
+
+        for (const toolCall of aiResponse.toolCalls) {
+          const functionName = toolCall.function.name;
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+
+          console.log('[Calculator] Executing function', {
+            agentId,
+            functionName,
+            arguments: functionArgs,
+          });
+
+          // Handle calculator functions
+          if (functionName === 'calculate_transfer_fees') {
+            const result = CalculatorService.calculateTransferFees(functionArgs);
+            if (result.success && result.result) {
+              calculatorResults.push(result.result.formatted_output || result.result.summary);
+
+              // Log to calculator_history
+              if (agentId) {
+                await supabase.from('calculator_history').insert({
+                  agent_id: agentId,
+                  calculator_id: (await supabase.from('calculators').select('id').eq('name', 'transfer_fees').single()).data?.id,
+                  inputs_provided: functionArgs,
+                  result_summary: result.result.summary,
+                });
+              }
+            } else if (result.error) {
+              calculatorResults.push(`Error: ${result.error.message}`);
+            }
+          } else if (functionName === 'calculate_capital_gains_tax') {
+            const result = CalculatorService.calculateCapitalGainsTax(functionArgs);
+            if (result.success && result.result) {
+              calculatorResults.push(result.result.formatted_output || result.result.summary);
+
+              // Log to calculator_history
+              if (agentId) {
+                await supabase.from('calculator_history').insert({
+                  agent_id: agentId,
+                  calculator_id: (await supabase.from('calculators').select('id').eq('name', 'capital_gains_tax').single()).data?.id,
+                  inputs_provided: functionArgs,
+                  result_summary: result.result.summary,
+                });
+              }
+            } else if (result.error) {
+              calculatorResults.push(`Error: ${result.error.message}`);
+            }
+          } else if (functionName === 'calculate_vat') {
+            const result = CalculatorService.calculateVAT(functionArgs);
+            if (result.success && result.result) {
+              calculatorResults.push(result.result.formatted_output || result.result.summary);
+
+              // Log to calculator_history
+              if (agentId) {
+                await supabase.from('calculator_history').insert({
+                  agent_id: agentId,
+                  calculator_id: (await supabase.from('calculators').select('id').eq('name', 'vat_calculator').single()).data?.id,
+                  inputs_provided: functionArgs,
+                  result_summary: result.result.summary,
+                });
+              }
+            } else if (result.error) {
+              calculatorResults.push(`Error: ${result.error.message}`);
+            }
+          } else if (functionName === 'list_calculators') {
+            const calculatorsList = `📊 Available Calculators:
+
+1️⃣ Transfer Fees Calculator
+Calculate property transfer fees in Cyprus
+Example: "Calculate transfer fees for €300,000"
+
+2️⃣ Capital Gains Tax Calculator
+Calculate capital gains tax on property sales
+Example: "Calculate capital gains tax for property bought at €250k in 2015, selling at €400k in 2025"
+
+3️⃣ VAT Calculator
+Calculate VAT for houses and apartments
+Example: "Calculate VAT for €350k apartment, first home"
+
+Just ask me to calculate and I'll guide you through it!`;
+            calculatorResults.push(calculatorsList);
+          } else if (functionName === 'get_calculator_history') {
+            if (!agentId) {
+              calculatorResults.push('Calculator history is only available for registered agents. Please register first.');
+            } else {
+              const limit = Math.min(functionArgs.limit || 5, 10);
+              const calculatorType = functionArgs.calculator_type;
+
+              // Build query
+              let query = supabase
+                .from('calculator_history')
+                .select(`
+                  id,
+                  created_at,
+                  inputs_provided,
+                  result_summary,
+                  calculators(name, description)
+                `)
+                .eq('agent_id', agentId)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+              // Filter by calculator type if specified
+              if (calculatorType) {
+                const calcData = await supabase
+                  .from('calculators')
+                  .select('id')
+                  .eq('name', calculatorType)
+                  .single();
+
+                if (calcData.data) {
+                  query = query.eq('calculator_id', calcData.data.id);
+                }
+              }
+
+              const { data: history, error: historyError } = await query;
+
+              if (historyError || !history || history.length === 0) {
+                calculatorResults.push('No calculation history found.');
+              } else {
+                const historyText = ['📜 Your Recent Calculations:\n'];
+
+                history.forEach((item: any, index: number) => {
+                  const date = new Date(item.created_at);
+                  const formattedDate = date.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  const calcName = item.calculators?.name || 'Unknown';
+                  const calcLabel = calcName === 'transfer_fees' ? 'Transfer Fees' :
+                                   calcName === 'capital_gains_tax' ? 'Capital Gains Tax' :
+                                   calcName === 'vat_calculator' ? 'VAT' : calcName;
+
+                  historyText.push(`${index + 1}. ${formattedDate} - ${calcLabel}`);
+                  historyText.push(`   Result: ${item.result_summary}`);
+                  historyText.push('');
+                });
+
+                calculatorResults.push(historyText.join('\n'));
+              }
+            }
+          }
+        }
+
+        // Combine AI response with calculator results
+        if (calculatorResults.length > 0) {
+          if (finalResponseText) {
+            finalResponseText = `${finalResponseText}\n\n${calculatorResults.join('\n\n')}`;
+          } else {
+            finalResponseText = calculatorResults.join('\n\n');
+          }
+        }
+
+        console.log('[Calculator] Functions executed', {
+          agentId,
+          resultsCount: calculatorResults.length,
+        });
+      }
 
       // Log to document_generations if this was an Assistant response (document generation)
       if (aiResponse.threadId && aiResponse.assistantId && agentId) {
@@ -319,7 +491,7 @@ async function processMessageAsync(
       // Send WhatsApp reply using WhatsApp service
       const whatsappService = new WhatsAppService({ supabaseClient: supabase });
       const sendResult = await whatsappService.sendMessage(
-        { phoneNumber, messageText: aiResponse.text },
+        { phoneNumber, messageText: finalResponseText },
         agentId || undefined
       );
 

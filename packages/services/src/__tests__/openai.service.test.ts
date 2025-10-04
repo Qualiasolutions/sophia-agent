@@ -462,4 +462,205 @@ describe('OpenAIService', () => {
       expect(response.costEstimate).toBe(0);
     });
   });
+
+  describe('Calculator Function Calling', () => {
+    it('should detect calculator request and return function call', async () => {
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_123',
+                  type: 'function',
+                  function: {
+                    name: 'calculate_transfer_fees',
+                    arguments: JSON.stringify({ property_value: 300000 }),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 50,
+          completion_tokens: 20,
+          total_tokens: 70,
+        },
+      });
+
+      const response = await service.generateResponse(
+        'Calculate transfer fees for 300k property'
+      );
+
+      expect(response.toolCalls).toBeDefined();
+      expect(response.toolCalls).toHaveLength(1);
+      expect(response.toolCalls?.[0].function.name).toBe('calculate_transfer_fees');
+      expect(JSON.parse(response.toolCalls?.[0].function.arguments || '{}')).toEqual({
+        property_value: 300000,
+      });
+    });
+
+    it('should support capital gains tax calculator function', async () => {
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_456',
+                  type: 'function',
+                  function: {
+                    name: 'calculate_capital_gains_tax',
+                    arguments: JSON.stringify({
+                      sale_price: 400000,
+                      purchase_price: 250000,
+                      purchase_year: 2015,
+                      sale_year: 2025,
+                    }),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 60,
+          completion_tokens: 30,
+          total_tokens: 90,
+        },
+      });
+
+      const response = await service.generateResponse(
+        'Calculate capital gains tax for property bought at 250k in 2015, selling at 400k in 2025'
+      );
+
+      expect(response.toolCalls).toBeDefined();
+      expect(response.toolCalls).toHaveLength(1);
+      expect(response.toolCalls?.[0].function.name).toBe('calculate_capital_gains_tax');
+    });
+
+    it('should support VAT calculator function', async () => {
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_789',
+                  type: 'function',
+                  function: {
+                    name: 'calculate_vat',
+                    arguments: JSON.stringify({
+                      property_value: 350000,
+                      property_type: 'apartment',
+                      is_first_home: true,
+                    }),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 55,
+          completion_tokens: 25,
+          total_tokens: 80,
+        },
+      });
+
+      const response = await service.generateResponse(
+        'Calculate VAT for 350k apartment, first home'
+      );
+
+      expect(response.toolCalls).toBeDefined();
+      expect(response.toolCalls).toHaveLength(1);
+      expect(response.toolCalls?.[0].function.name).toBe('calculate_vat');
+    });
+
+    it('should support list_calculators function', async () => {
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_list',
+                  type: 'function',
+                  function: {
+                    name: 'list_calculators',
+                    arguments: '{}',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 40,
+          completion_tokens: 15,
+          total_tokens: 55,
+        },
+      });
+
+      const response = await service.generateResponse(
+        'What calculators do you have?'
+      );
+
+      expect(response.toolCalls).toBeDefined();
+      expect(response.toolCalls).toHaveLength(1);
+      expect(response.toolCalls?.[0].function.name).toBe('list_calculators');
+    });
+
+    it('should handle multiple tool calls in single response', async () => {
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'Let me calculate both for you.',
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: {
+                    name: 'calculate_transfer_fees',
+                    arguments: JSON.stringify({ property_value: 300000 }),
+                  },
+                },
+                {
+                  id: 'call_2',
+                  type: 'function',
+                  function: {
+                    name: 'calculate_vat',
+                    arguments: JSON.stringify({
+                      property_value: 300000,
+                      property_type: 'house',
+                    }),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 70,
+          completion_tokens: 40,
+          total_tokens: 110,
+        },
+      });
+
+      const response = await service.generateResponse(
+        'Calculate both transfer fees and VAT for a 300k house'
+      );
+
+      expect(response.toolCalls).toBeDefined();
+      expect(response.toolCalls).toHaveLength(2);
+      expect(response.toolCalls?.[0].function.name).toBe('calculate_transfer_fees');
+      expect(response.toolCalls?.[1].function.name).toBe('calculate_vat');
+    });
+  });
 });

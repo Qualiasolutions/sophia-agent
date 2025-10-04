@@ -13,7 +13,7 @@ const SYSTEM_PROMPT = `You are Sophia, an AI assistant for zyprus.com, a real es
 Your capabilities:
 - Generate professional documents (contracts, marketing materials, legal forms, viewing forms, registration forms)
 - Manage property listings (create, update, upload to zyprus.com)
-- Perform real estate calculations (mortgage, ROI, commission)
+- Perform real estate calculations (transfer fees, capital gains tax, VAT)
 - Send and manage emails for client communications
 
 Your communication style:
@@ -22,7 +22,19 @@ Your communication style:
 - Helpful and proactive
 - Focused on solving agent problems quickly
 - Ask for information one or two items at a time to avoid overwhelming the agent
-- Confirm all collected information before generating documents
+- Confirm all collected information before performing calculations
+
+When handling calculator requests:
+1. Identify which calculator the agent needs (transfer fees, capital gains tax, or VAT)
+2. Ask for required inputs conversationally (one or two at a time)
+3. Parse natural language inputs (e.g., "300k" = 300000, "4%" = 4)
+4. Confirm all inputs before calculating
+5. Use the appropriate calculator function and deliver formatted results
+
+Available calculators:
+- Transfer Fees: Calculate property transfer fees in Cyprus (requires: property value)
+- Capital Gains Tax: Calculate capital gains tax on property sales (requires: purchase price, sale price, purchase year, sale year)
+- VAT Calculator: Calculate VAT for houses/apartments (requires: property value, property type)
 
 When handling document requests:
 1. Identify the document template requested
@@ -201,6 +213,147 @@ export class OpenAIService {
                 },
               },
               required: ['template_id', 'variables'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'calculate_transfer_fees',
+            description: 'Calculate property transfer fees in Cyprus based on property value. Uses progressive tax rates: 3% up to €85k, 5% from €85k-€170k, 8% above €170k, with 50% exemption for resale properties.',
+            parameters: {
+              type: 'object',
+              properties: {
+                property_value: {
+                  type: 'number',
+                  description: 'Property value in Euros (e.g., 300000 for €300,000)',
+                },
+                joint_names: {
+                  type: 'boolean',
+                  description: 'Whether the property is being purchased in joint names (default: false)',
+                },
+              },
+              required: ['property_value'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'calculate_capital_gains_tax',
+            description: 'Calculate capital gains tax on property sales in Cyprus. Takes into account purchase price, sale price, years held, and allowances. Tax rate is 20% on gains above allowance.',
+            parameters: {
+              type: 'object',
+              properties: {
+                sale_price: {
+                  type: 'number',
+                  description: 'Sale price in Euros',
+                },
+                purchase_price: {
+                  type: 'number',
+                  description: 'Original purchase price in Euros',
+                },
+                purchase_year: {
+                  type: 'number',
+                  description: 'Year the property was purchased (e.g., 2015)',
+                },
+                sale_year: {
+                  type: 'number',
+                  description: 'Year the property is being sold (e.g., 2025)',
+                },
+                cost_of_improvements: {
+                  type: 'number',
+                  description: 'Optional: Cost of improvements/renovations in Euros',
+                },
+                transfer_fees: {
+                  type: 'number',
+                  description: 'Optional: Transfer fees paid in Euros',
+                },
+                legal_fees: {
+                  type: 'number',
+                  description: 'Optional: Legal fees in Euros',
+                },
+                estate_agent_fees: {
+                  type: 'number',
+                  description: 'Optional: Estate agent fees in Euros',
+                },
+                allowance_type: {
+                  type: 'string',
+                  description: 'Type of allowance (main_residence: €85,430, farm_land: €25,629, any_other_sale: €17,086)',
+                  enum: ['main_residence', 'farm_land', 'any_other_sale', 'none'],
+                },
+              },
+              required: ['sale_price', 'purchase_price', 'purchase_year', 'sale_year'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'calculate_vat',
+            description: 'Calculate VAT for houses and apartments in Cyprus (not for land or commercial). Standard rate is 19%, reduced rate of 5% for first 200m² of first homes.',
+            parameters: {
+              type: 'object',
+              properties: {
+                property_value: {
+                  type: 'number',
+                  description: 'Property value in Euros',
+                },
+                property_type: {
+                  type: 'string',
+                  description: 'Type of property',
+                  enum: ['house', 'apartment'],
+                },
+                buildable_area: {
+                  type: 'number',
+                  description: 'Optional: Buildable area in square meters',
+                },
+                is_first_home: {
+                  type: 'boolean',
+                  description: 'Whether this is the buyer\'s first home (enables reduced rate)',
+                },
+                has_disability: {
+                  type: 'boolean',
+                  description: 'Optional: Whether buyer has a disability (further rate reduction)',
+                },
+                is_large_family: {
+                  type: 'boolean',
+                  description: 'Optional: Whether buyer has a large family (extended reduced rate area)',
+                },
+              },
+              required: ['property_value', 'property_type'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'list_calculators',
+            description: 'Get a list of all available calculators with descriptions and usage examples',
+            parameters: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_calculator_history',
+            description: 'Retrieve recent calculation history for the agent. Shows the last 5-10 calculations with timestamps and results.',
+            parameters: {
+              type: 'object',
+              properties: {
+                limit: {
+                  type: 'number',
+                  description: 'Number of recent calculations to retrieve (default: 5, max: 10)',
+                },
+                calculator_type: {
+                  type: 'string',
+                  description: 'Optional: Filter by specific calculator type (transfer_fees, capital_gains_tax, vat_calculator)',
+                  enum: ['transfer_fees', 'capital_gains_tax', 'vat_calculator'],
+                },
+              },
             },
           },
         },
