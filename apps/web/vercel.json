@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd ../.. && npm install && turbo run build --filter=web",
+  "outputDirectory": ".next"
+}
