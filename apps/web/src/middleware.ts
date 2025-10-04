@@ -25,8 +25,9 @@ export default withAuth(
 export const config = {
   matcher: [
     /*
-     * Match all admin routes except login and API routes
+     * Match all admin routes except login
+     * Using negative lookahead to exclude /admin/login
      */
-    '/admin/((?!login$).*)',
+    '/admin/:path((?!login).*)*',
   ],
 };
