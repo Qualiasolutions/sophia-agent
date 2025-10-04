@@ -10,8 +10,14 @@ export { default } from 'next-auth/middleware';
 export const config = {
   matcher: [
     /*
-     * Match all admin routes except login
+     * Match specific admin routes, excluding login
      */
-    '/admin/((?!login).*)',
+    '/admin',
+    '/admin/agents/:path*',
+    '/admin/analytics/:path*',
+    '/admin/templates/:path*',
+    '/admin/calculators/:path*',
+    '/admin/logs/:path*',
+    '/admin/settings/:path*',
   ],
 };
