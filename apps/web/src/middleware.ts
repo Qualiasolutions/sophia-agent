@@ -5,25 +5,28 @@
  * Protects admin routes - redirects unauthenticated users to login
  */
 
+import { NextResponse } from 'next/server';
 import { withAuth } from 'next-auth/middleware';
 
-export default withAuth({
-  pages: {
-    signIn: '/admin/login',
+export default withAuth(
+  function middleware(_req) {
+    return NextResponse.next();
   },
-});
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+    pages: {
+      signIn: '/admin/login',
+    },
+  }
+);
 
 export const config = {
   matcher: [
     /*
-     * Match specific admin routes, excluding login
+     * Match all admin routes except login and API routes
      */
-    '/admin',
-    '/admin/agents/:path*',
-    '/admin/analytics/:path*',
-    '/admin/templates/:path*',
-    '/admin/calculators/:path*',
-    '/admin/logs/:path*',
-    '/admin/settings/:path*',
+    '/admin/((?!login$).*)',
   ],
 };
