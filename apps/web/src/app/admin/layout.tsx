@@ -3,9 +3,9 @@
  * Epic 6, Story 6.5: Admin Dashboard Authentication
  *
  * Protected layout with authentication check and navigation
+ * Note: Login page has its own layout to bypass this auth check
  */
 
-import { redirect } from 'next/navigation';
 import { getServerSession } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -17,9 +17,9 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession();
 
-  // Redirect to login if not authenticated
+  // If no session, render children without layout (login page handles its own layout)
   if (!session) {
-    redirect('/admin/login');
+    return <>{children}</>;
   }
 
   return (
