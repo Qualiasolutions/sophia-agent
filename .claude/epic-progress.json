@@ -487,7 +487,7 @@
     "planning_completion_date": "2025-10-04",
     "blocker_status": {
       "telegram_integration": "blocked_on_bot_token",
-      "admin_dashboard": "in_progress"
+      "admin_dashboard": "completed"
     },
     "stories": {
       "6.1": {
@@ -561,7 +561,14 @@
         "depends_on": "6.5",
         "story_file": "docs/stories/6.9-admin-dashboard-config.story.md",
         "completion_date": "2025-10-04",
-        "notes": "System configuration API, calculator management, document templates viewer, system logs with export (CSV), Monaco JSON editor"
+        "notes": "System configuration API, calculator management, document templates viewer, system logs with export (CSV), Monaco JSON editor",
+        "deployment": {
+          "vercel_url": "https://sophia-agent-dbrh8xq6l-qualiasolutionscy.vercel.app",
+          "admin_url": "https://sophia-agent-dbrh8xq6l-qualiasolutionscy.vercel.app/admin",
+          "deployed_date": "2025-10-04",
+          "build_status": "successful",
+          "monorepo_fix": "Updated vercel.json with installCommand and buildCommand to resolve workspace dependencies"
+        }
       }
     },
     "blockers": [
@@ -619,6 +626,7 @@
       "epic_6": "READY - Story files complete, Telegram blocked on bot token, Admin Dashboard ready to start"
     },
     "current_test_status": "101/101 tests passing",
-    "deployment_url": "https://sophia-agent-eoqa67bpy-qualiasolutionscy.vercel.app"
+    "deployment_url": "https://sophia-agent-dbrh8xq6l-qualiasolutionscy.vercel.app",
+    "admin_dashboard_url": "https://sophia-agent-dbrh8xq6l-qualiasolutionscy.vercel.app/admin"
   }
 }
