@@ -371,11 +371,12 @@
   },
   "epic_6": {
     "name": "Telegram Bot & Admin Dashboard",
-    "status": "ready_to_start",
+    "status": "in_progress",
+    "started_date": "2025-10-04",
     "planning_completion_date": "2025-10-04",
     "blocker_status": {
       "telegram_integration": "blocked_on_bot_token",
-      "admin_dashboard": "ready_no_blockers"
+      "admin_dashboard": "in_progress"
     },
     "stories": {
       "6.1": {
@@ -408,32 +409,39 @@
       },
       "6.5": {
         "name": "Admin Dashboard - Authentication & Layout",
-        "status": "ready",
+        "status": "completed",
+        "completion_date": "2025-10-04",
         "agent": "frontend-developer",
         "depends_on": "none",
         "story_file": "docs/stories/6.5-admin-dashboard-auth.story.md",
-        "notes": "Can start immediately - no blockers"
+        "notes": "NextAuth.js with credentials provider, admin users table, protected routes"
       },
       "6.6": {
         "name": "Admin Dashboard - System Overview & Monitoring",
-        "status": "pending",
+        "status": "completed",
+        "completion_date": "2025-10-04",
         "agent": "frontend-developer",
         "depends_on": "6.5",
-        "story_file": "docs/stories/6.6-admin-dashboard-overview.story.md"
+        "story_file": "docs/stories/6.6-admin-dashboard-overview.story.md",
+        "notes": "Stats API, health monitoring, recent activity feed with real-time data"
       },
       "6.7": {
         "name": "Admin Dashboard - Agent Management",
-        "status": "pending",
+        "status": "completed",
+        "completion_date": "2025-10-04",
         "agent": "frontend-developer",
         "depends_on": "6.5",
-        "story_file": "docs/stories/6.7-admin-dashboard-agents.story.md"
+        "story_file": "docs/stories/6.7-admin-dashboard-agents.story.md",
+        "notes": "CRUD operations, search/filter, pagination, agent statistics, soft delete"
       },
       "6.8": {
         "name": "Admin Dashboard - Analytics & Reporting",
-        "status": "pending",
+        "status": "completed",
+        "completion_date": "2025-10-04",
         "agent": "frontend-developer",
         "depends_on": "6.5",
-        "story_file": "docs/stories/6.8-admin-dashboard-analytics.story.md"
+        "story_file": "docs/stories/6.8-admin-dashboard-analytics.story.md",
+        "notes": "Recharts integration, time-series charts, distribution charts, date range selector, export functionality (PNG/CSV)"
       },
       "6.9": {
         "name": "Admin Dashboard - Configuration & Template Management",
