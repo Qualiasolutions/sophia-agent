@@ -42,13 +42,12 @@ export async function GET(request: NextRequest) {
       .from('conversation_logs')
       .select(`
         id,
-        created_at,
+        timestamp,
         direction,
-        channel,
         agent_id,
         agents (name)
       `)
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .limit(10);
 
     if (!messagesError && messages) {
@@ -58,8 +57,8 @@ export async function GET(request: NextRequest) {
           id: msg.id,
           type: 'message',
           agentName: agent?.name ?? 'Unknown Agent',
-          description: `${msg.direction === 'inbound' ? 'Received' : 'Sent'} ${msg.channel} message`,
-          timestamp: msg.created_at,
+          description: `${msg.direction === 'inbound' ? 'Received' : 'Sent'} message`,
+          timestamp: msg.timestamp,
         });
       });
     }
@@ -70,7 +69,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         created_at,
-        document_type,
+        template_filename,
         agent_id,
         agents (name)
       `)
@@ -80,11 +79,12 @@ export async function GET(request: NextRequest) {
     if (!documentsError && documents) {
       documents.forEach((doc) => {
         const agent = doc.agents as unknown as { name: string } | null;
+        const docType = doc.template_filename?.replace('.docx', '') || 'document';
         activities.push({
           id: doc.id,
           type: 'document',
           agentName: agent?.name ?? 'Unknown Agent',
-          description: `Generated ${doc.document_type} document`,
+          description: `Generated ${docType}`,
           timestamp: doc.created_at,
         });
       });
@@ -96,9 +96,9 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         created_at,
-        calculator_type,
         agent_id,
-        agents (name)
+        agents (name),
+        calculators (name)
       `)
       .order('created_at', { ascending: false })
       .limit(10);
@@ -106,11 +106,12 @@ export async function GET(request: NextRequest) {
     if (!calculatorsError && calculators) {
       calculators.forEach((calc) => {
         const agent = calc.agents as unknown as { name: string } | null;
+        const calculator = calc.calculators as unknown as { name: string } | null;
         activities.push({
           id: calc.id,
           type: 'calculator',
           agentName: agent?.name ?? 'Unknown Agent',
-          description: `Used ${calc.calculator_type} calculator`,
+          description: `Used ${calculator?.name || 'calculator'}`,
           timestamp: calc.created_at,
         });
       });

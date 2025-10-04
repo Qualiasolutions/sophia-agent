@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { count: totalAgents, error: agentsError } = await supabase
       .from('agents')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
+      .eq('is_active', true);
 
     if (agentsError) throw agentsError;
 

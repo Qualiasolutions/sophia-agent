@@ -61,56 +61,28 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Check WhatsApp webhook (last message received)
-    const { data: lastWhatsApp, error: whatsappError } = await supabase
+    // Check messaging webhook (last inbound message received)
+    const { data: lastInbound, error: inboundError } = await supabase
       .from('conversation_logs')
-      .select('created_at, channel')
-      .eq('channel', 'whatsapp')
-      .order('created_at', { ascending: false })
+      .select('timestamp')
+      .eq('direction', 'inbound')
+      .order('timestamp', { ascending: false })
       .limit(1)
       .single();
 
-    if (!whatsappError && lastWhatsApp) {
-      const minutesAgo = (Date.now() - new Date(lastWhatsApp.created_at).getTime()) / 1000 / 60;
+    if (!inboundError && lastInbound) {
+      const minutesAgo = (Date.now() - new Date(lastInbound.timestamp).getTime()) / 1000 / 60;
       const status: ServiceStatus = minutesAgo < 5 ? 'online' : minutesAgo < 30 ? 'warning' : 'offline';
 
       health.push({
-        service: 'WhatsApp Webhook',
+        service: 'Messaging Webhook',
         status,
-        lastUpdate: lastWhatsApp.created_at,
+        lastUpdate: lastInbound.timestamp,
         message: `Last message ${Math.round(minutesAgo)}m ago`,
       });
     } else {
       health.push({
-        service: 'WhatsApp Webhook',
-        status: 'offline',
-        lastUpdate: null,
-        message: 'No messages received',
-      });
-    }
-
-    // Check Telegram webhook (last message received)
-    const { data: lastTelegram, error: telegramError } = await supabase
-      .from('conversation_logs')
-      .select('created_at, channel')
-      .eq('channel', 'telegram')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!telegramError && lastTelegram) {
-      const minutesAgo = (Date.now() - new Date(lastTelegram.created_at).getTime()) / 1000 / 60;
-      const status: ServiceStatus = minutesAgo < 5 ? 'online' : minutesAgo < 30 ? 'warning' : 'offline';
-
-      health.push({
-        service: 'Telegram Webhook',
-        status,
-        lastUpdate: lastTelegram.created_at,
-        message: `Last message ${Math.round(minutesAgo)}m ago`,
-      });
-    } else {
-      health.push({
-        service: 'Telegram Webhook',
+        service: 'Messaging Webhook',
         status: 'offline',
         lastUpdate: null,
         message: 'No messages received',
@@ -120,20 +92,20 @@ export async function GET(request: NextRequest) {
     // Check OpenAI API (check last successful AI response)
     const { data: lastAI, error: aiError } = await supabase
       .from('conversation_logs')
-      .select('created_at, direction')
+      .select('timestamp')
       .eq('direction', 'outbound')
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .limit(1)
       .single();
 
     if (!aiError && lastAI) {
-      const minutesAgo = (Date.now() - new Date(lastAI.created_at).getTime()) / 1000 / 60;
+      const minutesAgo = (Date.now() - new Date(lastAI.timestamp).getTime()) / 1000 / 60;
       const status: ServiceStatus = minutesAgo < 5 ? 'online' : minutesAgo < 30 ? 'warning' : 'offline';
 
       health.push({
         service: 'OpenAI API',
         status,
-        lastUpdate: lastAI.created_at,
+        lastUpdate: lastAI.timestamp,
         message: `Last response ${Math.round(minutesAgo)}m ago`,
       });
     } else {
