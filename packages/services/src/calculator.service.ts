@@ -123,7 +123,7 @@ export function calculateCapitalGainsTax(inputs: Record<string, any>): Calculato
 
     // Optional expenses
     const costOfImprovements = parseFloat(inputs.cost_of_improvements || '0');
-    const improvementsYear = parseInt(inputs.improvements_year || saleYear.toString());
+    // const improvementsYear = parseInt(inputs.improvements_year || saleYear.toString());
     const transferFees = parseFloat(inputs.transfer_fees || '0');
     const interestOnLoan = parseFloat(inputs.interest_on_loan || '0');
     const legalFees = parseFloat(inputs.legal_fees || '0');
@@ -168,15 +168,15 @@ export function calculateCapitalGainsTax(inputs: Record<string, any>): Calculato
       none: 0,
     };
 
-    const allowance = allowances[allowanceType] || allowances.any_other_sale;
+    const allowance = allowances[allowanceType] ?? allowances.any_other_sale;
 
     // Calculate taxable gain
-    const taxableGain = Math.max(0, capitalGain - allowance);
+    const taxableGain = Math.max(0, capitalGain - (allowance ?? 0));
 
     // Calculate tax (20% rate)
     const capitalGainsTax = taxableGain * 0.20;
 
-    const formattedOutput = `📈 Capital Gains Tax Calculation\n\nSale Details:\n- Sale Price: €${salePrice.toLocaleString()}\n- Sale Year: ${saleYear}\n\nPurchase Details:\n- Purchase Price: €${purchasePrice.toLocaleString()}\n- Purchase Year: €{purchaseYear}\n- Inflation-Adjusted: €${adjustedPurchasePrice.toLocaleString()}\n\nExpenses:\n- Improvements: €${costOfImprovements.toLocaleString()}\n- Transfer Fees: €${transferFees.toLocaleString()}\n- Legal Fees: €${legalFees.toLocaleString()}\n- Agent Fees: €${agentFees.toLocaleString()}\n- Other: €${otherExpenses.toLocaleString()}\n\nCalculation:\n- Total Cost Basis: €${totalCostBasis.toLocaleString()}\n- Capital Gain: €${capitalGain.toLocaleString()}\n- Allowance (${allowanceType.replace('_', ' ')}): €${allowance.toLocaleString()}\n- Taxable Gain: €${taxableGain.toLocaleString()}\n\n📊 Capital Gains Tax (20%): €${capitalGainsTax.toLocaleString()}\n\nNote: This is an estimate. Consult a tax professional for accurate assessment.`;
+    const formattedOutput = `📈 Capital Gains Tax Calculation\n\nSale Details:\n- Sale Price: €${salePrice.toLocaleString()}\n- Sale Year: ${saleYear}\n\nPurchase Details:\n- Purchase Price: €${purchasePrice.toLocaleString()}\n- Purchase Year: €{purchaseYear}\n- Inflation-Adjusted: €${adjustedPurchasePrice.toLocaleString()}\n\nExpenses:\n- Improvements: €${costOfImprovements.toLocaleString()}\n- Transfer Fees: €${transferFees.toLocaleString()}\n- Legal Fees: €${legalFees.toLocaleString()}\n- Agent Fees: €${agentFees.toLocaleString()}\n- Other: €${otherExpenses.toLocaleString()}\n\nCalculation:\n- Total Cost Basis: €${totalCostBasis.toLocaleString()}\n- Capital Gain: €${capitalGain.toLocaleString()}\n- Allowance (${allowanceType.replace('_', ' ')}): €${(allowance ?? 0).toLocaleString()}\n- Taxable Gain: €${taxableGain.toLocaleString()}\n\n📊 Capital Gains Tax (20%): €${capitalGainsTax.toLocaleString()}\n\nNote: This is an estimate. Consult a tax professional for accurate assessment.`;
 
     return {
       success: true,

@@ -411,7 +411,7 @@ Just ask me to calculate and I'll guide you through it!`;
               } else {
                 const historyText = ['📜 Your Recent Calculations:\n'];
 
-                history.forEach((item: any, index: number) => {
+                history.forEach((item, index) => {
                   const date = new Date(item.created_at);
                   const formattedDate = date.toLocaleDateString('en-GB', {
                     day: '2-digit',
@@ -420,7 +420,7 @@ Just ask me to calculate and I'll guide you through it!`;
                     minute: '2-digit',
                   });
 
-                  const calcName = item.calculators?.name || 'Unknown';
+                  const calcName = (item.calculators as { name?: string })?.name || 'Unknown';
                   const calcLabel = calcName === 'transfer_fees' ? 'Transfer Fees' :
                                    calcName === 'capital_gains_tax' ? 'Capital Gains Tax' :
                                    calcName === 'vat_calculator' ? 'VAT' : calcName;
