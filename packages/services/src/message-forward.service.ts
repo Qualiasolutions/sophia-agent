@@ -5,10 +5,11 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { MessageForward, ForwardResult } from '@sophiaai/shared/types/telegram';
-import { whatsappService } from './whatsapp.service';
+import { WhatsAppService } from './whatsapp.service';
 
 export class MessageForwardService {
   private supabase: SupabaseClient;
+  private whatsappService: WhatsAppService;
 
   constructor() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -19,6 +20,7 @@ export class MessageForwardService {
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey);
+    this.whatsappService = new WhatsAppService();
   }
 
   /**
@@ -40,7 +42,7 @@ export class MessageForwardService {
         : `+${recipientPhone}`;
 
       // Send message via WhatsApp
-      await whatsappService.sendMessage(formattedPhone, message);
+      await this.whatsappService.sendMessage(formattedPhone, message);
 
       // Log the forward
       await this.logMessageForward({

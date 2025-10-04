@@ -10,10 +10,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramUpdate } from '@sophiaai/shared/types/telegram';
-import { telegramService, TelegramService } from '@sophiaai/services/telegram.service';
-import { telegramAuthService, TelegramAuthService } from '@sophiaai/services/telegram-auth.service';
-import { messageForwardService, MessageForwardService } from '@sophiaai/services/message-forward.service';
-import { assistantService } from '@sophiaai/services/assistant.service';
+import {
+  telegramService,
+  TelegramService,
+  telegramAuthService,
+  TelegramAuthService,
+  messageForwardService,
+  MessageForwardService,
+  getAssistantService,
+} from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
 
 const WEBHOOK_SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || 'default-secret-token';
@@ -221,6 +226,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
     });
 
     // Generate AI response
+    const assistantService = getAssistantService();
     const aiResponse = await assistantService.generateResponse({
       userMessage: text,
       agentId: telegramUser.agent_id,
