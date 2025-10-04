@@ -7,7 +7,7 @@ import {
   TelegramMessage,
   SendMessageOptions,
   WebhookInfo,
-} from '@sophiaai/shared/types/telegram';
+} from '@sophiaai/shared';
 
 export class TelegramService {
   private botToken: string;

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { TelegramUpdate } from '@sophiaai/shared/types/telegram';
+import { TelegramUpdate } from '@sophiaai/shared';
 import {
   telegramService,
   TelegramService,
@@ -225,13 +225,14 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       telegramMessageId: message.message_id,
     });
 
-    // Generate AI response
+    // Generate AI response using OpenAI Assistant
     const assistantService = getAssistantService();
-    const aiResponse = await assistantService.generateResponse({
-      userMessage: text,
-      agentId: telegramUser.agent_id,
-      conversationHistory: [], // TODO: Load conversation history for context
-    });
+    const response = await assistantService.generateDocument(
+      telegramUser.agent_id,
+      text,
+      [] // TODO: Load conversation history for context
+    );
+    const aiResponse = response.text;
 
     // Send AI response
     await telegramService.sendMessage(

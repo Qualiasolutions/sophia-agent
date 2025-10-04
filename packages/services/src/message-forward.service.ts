@@ -4,7 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { MessageForward, ForwardResult } from '@sophiaai/shared/types/telegram';
+import { MessageForward, ForwardResult } from '@sophiaai/shared';
 import { WhatsAppService } from './whatsapp.service';
 
 export class MessageForwardService {
@@ -42,7 +42,10 @@ export class MessageForwardService {
         : `+${recipientPhone}`;
 
       // Send message via WhatsApp
-      await this.whatsappService.sendMessage(formattedPhone, message);
+      await this.whatsappService.sendMessage({
+        phoneNumber: formattedPhone,
+        messageText: message,
+      });
 
       // Log the forward
       await this.logMessageForward({
@@ -149,8 +152,8 @@ export class MessageForwardService {
     if (match1) {
       return {
         isForwardCommand: true,
-        recipient: match1[1],
-        message: match1[2].trim(),
+        recipient: match1[1]!,
+        message: match1[2]!.trim(),
       };
     }
 
@@ -161,8 +164,8 @@ export class MessageForwardService {
     if (match2) {
       return {
         isForwardCommand: true,
-        recipient: match2[1],
-        message: match2[2].trim(),
+        recipient: match2[1]!,
+        message: match2[2]!.trim(),
       };
     }
 

@@ -4,7 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { TelegramUserDB } from '@sophiaai/shared/types/telegram';
+import { TelegramUserDB } from '@sophiaai/shared';
 
 export class TelegramAuthService {
   private supabase: SupabaseClient;
