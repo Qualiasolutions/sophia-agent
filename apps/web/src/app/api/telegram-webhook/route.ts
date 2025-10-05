@@ -409,8 +409,7 @@ async function logConversation(params: {
     await supabase.from('conversation_logs').insert({
       agent_id: params.agentId,
       direction: params.direction,
-      message_content: params.messageContent,
-      platform: params.platform,
+      message_text: params.messageContent, // Changed from message_content to message_text
       telegram_chat_id: params.telegramChatId,
       telegram_message_id: params.telegramMessageId,
       timestamp: new Date().toISOString(),
