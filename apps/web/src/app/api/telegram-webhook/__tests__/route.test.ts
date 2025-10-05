@@ -34,6 +34,26 @@ vi.mock('@sophiaai/services', () => ({
   getAssistantService: vi.fn(() => ({
     generateDocument: vi.fn(),
   })),
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+  getMetricsService: vi.fn(() => ({
+    trackRequest: vi.fn(),
+    trackError: vi.fn(),
+    trackRateLimit: vi.fn(),
+    trackUserRegistration: vi.fn(),
+    trackMessageForward: vi.fn(),
+    getMetricsSnapshot: vi.fn(() => ({
+      timestamp: new Date().toISOString(),
+      uptime: 1000,
+    })),
+  })),
+  getTelegramRateLimiter: vi.fn(() => ({
+    checkLimit: vi.fn(() => ({ allowed: true, resetAt: Date.now() + 60000 })),
+  })),
 }));
 
 // Mock Supabase
