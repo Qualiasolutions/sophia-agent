@@ -111,9 +111,15 @@ vercel --prod             # Deploy to production (requires Vercel CLI)
 
 ## Documentation
 
+### General Documentation
 - **Architecture**: See [docs/architecture/](docs/architecture/) for detailed system design
 - **Product Requirements**: See [docs/prd/](docs/prd/) for feature specifications
 - **Stories**: See [docs/stories/](docs/stories/) for development tasks
+
+### Platform-Specific Guides
+- **Telegram Bot Setup**: [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) - Deployment and configuration guide
+- **Telegram User Guide**: [docs/TELEGRAM_USER_GUIDE.md](docs/TELEGRAM_USER_GUIDE.md) - End-user documentation
+- **Telegram API Reference**: [docs/TELEGRAM_API.md](docs/TELEGRAM_API.md) - Developer API documentation
 
 ## Health Check
 
