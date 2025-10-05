@@ -30,6 +30,7 @@ vi.mock('@sophiaai/services', () => ({
   },
   MessageForwardService: {
     parseForwardCommand: vi.fn(),
+    validatePhoneNumber: vi.fn(() => true),
   },
   getAssistantService: vi.fn(() => ({
     generateDocument: vi.fn(),
@@ -39,6 +40,8 @@ vi.mock('@sophiaai/services', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+    trackPerformance: vi.fn(),
+    trackEvent: vi.fn(),
   })),
   getMetricsService: vi.fn(() => ({
     trackRequest: vi.fn(),
@@ -46,6 +49,9 @@ vi.mock('@sophiaai/services', () => ({
     trackRateLimit: vi.fn(),
     trackUserRegistration: vi.fn(),
     trackMessageForward: vi.fn(),
+    trackPerformance: vi.fn(),
+    trackActiveUser: vi.fn(),
+    trackRegistration: vi.fn(),
     getMetricsSnapshot: vi.fn(() => ({
       timestamp: new Date().toISOString(),
       uptime: 1000,
@@ -117,8 +123,8 @@ describe('Telegram Webhook Endpoint', () => {
         update_id: 123,
         message: {
           message_id: 1,
-          from: { id: 456, username: 'testuser' },
-          chat: { id: 789, type: 'private' },
+          from: { id: 111, username: 'testuser' },
+          chat: { id: 222, type: 'private' },
           date: Date.now(),
           text: 'test',
         },
