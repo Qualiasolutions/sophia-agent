@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Webhook received', {
       updateId: update.update_id,
-      userId: update.message?.from?.id?.toString(),
+      userId: update.message?.from?.id?.toString() ?? undefined,
     });
 
     metrics.trackRequest('telegram');
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       if (!rateLimit.allowed) {
         const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
         logger.warn('Rate limit exceeded', {
-          userId: userId?.toString(),
+          userId: userId?.toString() ?? undefined,
           resetIn,
           updateId: update.update_id,
         });
