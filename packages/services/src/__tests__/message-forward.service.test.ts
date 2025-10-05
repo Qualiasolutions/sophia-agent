@@ -4,41 +4,53 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MessageForwardService, getMessageForwardService } from '../message-forward.service';
 
 // Mock Supabase
+const mockInsert = vi.fn();
+const mockSelect = vi.fn();
+const mockEq = vi.fn();
+const mockOrder = vi.fn();
+const mockLimit = vi.fn();
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
-    from: vi.fn(),
+    from: vi.fn(() => ({
+      insert: mockInsert.mockReturnValue(Promise.resolve({ error: null })),
+      select: mockSelect.mockReturnValue({
+        eq: mockEq.mockReturnValue({
+          order: mockOrder.mockReturnValue({
+            limit: mockLimit,
+          }),
+        }),
+      }),
+    })),
   })),
 }));
 
 // Mock WhatsAppService
+const mockSendMessage = vi.fn();
 vi.mock('../whatsapp.service', () => ({
   WhatsAppService: vi.fn().mockImplementation(() => ({
-    sendMessage: vi.fn(),
+    sendMessage: mockSendMessage,
   })),
 }));
 
+// Import after mocking
+import { MessageForwardService } from '../message-forward.service';
+
 describe('MessageForwardService', () => {
   let service: MessageForwardService;
-  let mockSupabase: any;
-  let mockWhatsAppService: any;
 
   beforeEach(() => {
     // Set up environment
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 
-    // Create service
-    service = getMessageForwardService();
+    // Clear all mocks
+    vi.clearAllMocks();
 
-    // Get mock instances
-    const { createClient } = require('@supabase/supabase-js');
-    mockSupabase = createClient();
-
-    const { WhatsAppService } = require('../whatsapp.service');
-    mockWhatsAppService = new WhatsAppService();
+    // Create fresh service instance
+    service = new MessageForwardService();
   });
 
   afterEach(() => {
@@ -47,11 +59,7 @@ describe('MessageForwardService', () => {
 
   describe('forwardToWhatsApp', () => {
     it('should forward message successfully', async () => {
-      mockWhatsAppService.sendMessage.mockResolvedValueOnce(undefined);
-
-      mockSupabase.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error: null })),
-      }));
+      mockSendMessage.mockResolvedValueOnce(undefined);
 
       const result = await service.forwardToWhatsApp({
         agentId: 'agent-123',
@@ -61,18 +69,14 @@ describe('MessageForwardService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockWhatsAppService.sendMessage).toHaveBeenCalledWith({
+      expect(mockSendMessage).toHaveBeenCalledWith({
         phoneNumber: '+35799123456',
         messageText: 'Test message',
       });
     });
 
     it('should add + prefix to phone number if missing', async () => {
-      mockWhatsAppService.sendMessage.mockResolvedValueOnce(undefined);
-
-      mockSupabase.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error: null })),
-      }));
+      mockSendMessage.mockResolvedValueOnce(undefined);
 
       await service.forwardToWhatsApp({
         agentId: 'agent-123',
@@ -81,19 +85,14 @@ describe('MessageForwardService', () => {
         message: 'Test message',
       });
 
-      expect(mockWhatsAppService.sendMessage).toHaveBeenCalledWith({
+      expect(mockSendMessage).toHaveBeenCalledWith({
         phoneNumber: '+35799123456',
         messageText: 'Test message',
       });
     });
 
     it('should log successful forward to database', async () => {
-      mockWhatsAppService.sendMessage.mockResolvedValueOnce(undefined);
-
-      const insertMock = vi.fn(() => Promise.resolve({ error: null }));
-      mockSupabase.from = vi.fn(() => ({
-        insert: insertMock,
-      }));
+      mockSendMessage.mockResolvedValueOnce(undefined);
 
       await service.forwardToWhatsApp({
         agentId: 'agent-123',
@@ -103,7 +102,7 @@ describe('MessageForwardService', () => {
         messageType: 'text',
       });
 
-      expect(insertMock).toHaveBeenCalledWith(
+      expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           agent_id: 'agent-123',
           source_platform: 'telegram',
@@ -119,11 +118,7 @@ describe('MessageForwardService', () => {
 
     it('should handle WhatsApp send failure', async () => {
       const error = new Error('WhatsApp API error');
-      mockWhatsAppService.sendMessage.mockRejectedValueOnce(error);
-
-      mockSupabase.from = vi.fn(() => ({
-        insert: vi.fn(() => Promise.resolve({ error: null })),
-      }));
+      mockSendMessage.mockRejectedValueOnce(error);
 
       const result = await service.forwardToWhatsApp({
         agentId: 'agent-123',
@@ -138,12 +133,7 @@ describe('MessageForwardService', () => {
 
     it('should log failed forward to database', async () => {
       const error = new Error('Network error');
-      mockWhatsAppService.sendMessage.mockRejectedValueOnce(error);
-
-      const insertMock = vi.fn(() => Promise.resolve({ error: null }));
-      mockSupabase.from = vi.fn(() => ({
-        insert: insertMock,
-      }));
+      mockSendMessage.mockRejectedValueOnce(error);
 
       await service.forwardToWhatsApp({
         agentId: 'agent-123',
@@ -152,7 +142,7 @@ describe('MessageForwardService', () => {
         message: 'Test message',
       });
 
-      expect(insertMock).toHaveBeenCalledWith(
+      expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           forward_status: 'failed',
           error_message: 'Network error',
@@ -180,17 +170,7 @@ describe('MessageForwardService', () => {
         },
       ];
 
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn(() =>
-                Promise.resolve({ data: mockHistory, error: null })
-              ),
-            })),
-          })),
-        })),
-      }));
+      mockLimit.mockResolvedValueOnce({ data: mockHistory, error: null });
 
       const result = await service.getForwardHistory('agent-123');
 
@@ -198,41 +178,18 @@ describe('MessageForwardService', () => {
     });
 
     it('should respect limit parameter', async () => {
-      let capturedLimit = 0;
-
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn((limit: number) => {
-                capturedLimit = limit;
-                return Promise.resolve({ data: [], error: null });
-              }),
-            })),
-          })),
-        })),
-      }));
+      mockLimit.mockResolvedValueOnce({ data: [], error: null });
 
       await service.getForwardHistory('agent-123', 10);
 
-      expect(capturedLimit).toBe(10);
+      expect(mockLimit).toHaveBeenCalledWith(10);
     });
 
     it('should throw error on database failure', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn(() =>
-                Promise.resolve({
-                  data: null,
-                  error: { message: 'Database error' }
-                })
-              ),
-            })),
-          })),
-        })),
-      }));
+      mockLimit.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Database error' }
+      });
 
       await expect(
         service.getForwardHistory('agent-123')

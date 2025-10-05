@@ -19,8 +19,13 @@ import {
   MessageForwardService,
   getAssistantService,
   getTelegramRateLimiter,
+  createLogger,
+  getMetricsService,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
+
+const logger = createLogger('TelegramWebhook');
+const metrics = getMetricsService();
 
 const WEBHOOK_SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || 'default-secret-token';
 
@@ -31,12 +36,16 @@ const registrationState = new Map<number, 'awaiting_email' | 'completed'>();
 const rateLimiter = getTelegramRateLimiter();
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
     // Verify webhook signature for security
     const secretToken = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
 
     if (!TelegramService.validateWebhookSignature(WEBHOOK_SECRET_TOKEN, secretToken || undefined)) {
-      console.warn('Invalid webhook signature');
+      logger.warn('Invalid webhook signature', {
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -45,6 +54,13 @@ export async function POST(request: NextRequest) {
 
     // Parse incoming update
     const update: TelegramUpdate = await request.json();
+
+    logger.info('Webhook received', {
+      updateId: update.update_id,
+      userId: update.message?.from?.id?.toString(),
+    });
+
+    metrics.trackRequest('telegram');
 
     // Extract user ID for rate limiting
     const userId = update.message?.from?.id || update.edited_message?.from?.id;
@@ -55,7 +71,13 @@ export async function POST(request: NextRequest) {
 
       if (!rateLimit.allowed) {
         const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
-        console.warn(`Rate limit exceeded for user ${userId}, resets in ${resetIn}s`);
+        logger.warn('Rate limit exceeded', {
+          userId: userId?.toString(),
+          resetIn,
+          updateId: update.update_id,
+        });
+
+        metrics.trackRateLimit('telegram');
 
         // Send rate limit message to user
         const chatId = update.message?.chat.id || update.edited_message?.chat.id;
@@ -70,20 +92,36 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true }); // Still return 200 to acknowledge webhook
       }
 
-      console.log(`Rate limit: ${rateLimit.remaining} remaining for user ${userId}`);
+      logger.debug('Rate limit check passed', {
+        userId: userId?.toString(),
+        remaining: rateLimit.remaining,
+      });
     }
-
-    console.log('Received Telegram update:', update.update_id);
 
     // Process message asynchronously (don't block webhook response)
     processUpdate(update).catch((error) => {
-      console.error('Error processing Telegram update:', error);
+      logger.error('Error processing update async', {
+        updateId: update.update_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
     });
 
     // Respond immediately to Telegram (within 60 seconds requirement)
+    const responseTime = Date.now() - startTime;
+    logger.trackPerformance('webhook_response_time', responseTime, {
+      updateId: update.update_id,
+    });
+    metrics.trackPerformance('webhookResponseTime', responseTime);
+
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('Telegram webhook error:', error);
+    logger.error('Webhook error', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    metrics.trackError('telegram');
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -95,10 +133,13 @@ export async function POST(request: NextRequest) {
  * Process Telegram update asynchronously
  */
 async function processUpdate(update: TelegramUpdate): Promise<void> {
+  const startTime = Date.now();
   const message = update.message;
 
   if (!message || !message.from) {
-    console.log('No message or sender in update, skipping');
+    logger.debug('No message or sender in update', {
+      updateId: update.update_id,
+    });
     return;
   }
 
@@ -109,7 +150,14 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
   const firstName = message.from.first_name;
   const lastName = message.from.last_name;
 
-  console.log(`Message from ${username} (${userId}): ${text}`);
+  logger.info('Processing message', {
+    userId: userId.toString(),
+    username,
+    chatId,
+    messageLength: text?.length || 0,
+  });
+
+  metrics.trackActiveUser(userId.toString());
 
   if (!text) {
     return;
@@ -156,6 +204,14 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
           firstName,
           lastName,
         });
+
+        logger.trackEvent('user_registered', {
+          userId: userId.toString(),
+          agentId: agent.id,
+          email: text,
+        });
+
+        metrics.trackRegistration();
 
         registrationState.set(userId, 'completed');
 
@@ -227,6 +283,15 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
         messageType: 'text',
       });
 
+      logger.trackEvent('message_forwarded', {
+        userId: userId.toString(),
+        agentId: telegramUser.agent_id,
+        success: result.success,
+        destination: forwardParsed.recipient,
+      });
+
+      metrics.trackMessageForward(result.success);
+
       if (result.success) {
         await telegramService.sendMessage(
           chatId,
@@ -258,12 +323,24 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
     // Generate AI response using OpenAI Assistant
     const assistantService = getAssistantService();
+    const aiStartTime = Date.now();
+
     const response = await assistantService.generateDocument(
       telegramUser.agent_id,
       text,
       [] // TODO: Load conversation history for context
     );
     const aiResponse = response.text;
+
+    const aiDuration = Date.now() - aiStartTime;
+    logger.trackPerformance('ai_response_generation', aiDuration, {
+      userId: userId.toString(),
+      agentId: telegramUser.agent_id,
+      messageLength: text.length,
+      responseLength: aiResponse.length,
+    });
+
+    metrics.trackPerformance('aiResponseTime', aiDuration);
 
     // Send AI response
     await telegramService.sendMessage(
@@ -280,14 +357,35 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       platform: 'telegram',
       telegramChatId: chatId,
     });
+
+    const processingDuration = Date.now() - startTime;
+    logger.trackPerformance('message_processing_complete', processingDuration, {
+      userId: userId.toString(),
+      chatId,
+    });
+
+    metrics.trackPerformance('messageProcessingTime', processingDuration);
   } catch (error) {
-    console.error('Error processing Telegram update:', error);
+    logger.error('Error processing message', {
+      userId: userId.toString(),
+      chatId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    metrics.trackError('telegram');
 
     await telegramService.sendMessage(
       chatId,
       '❌ An error occurred processing your message. Please try again later.',
       { parse_mode: 'Markdown' }
-    ).catch(console.error);
+    ).catch(err => {
+      logger.error('Failed to send error message', {
+        userId: userId.toString(),
+        chatId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
   }
 }
 

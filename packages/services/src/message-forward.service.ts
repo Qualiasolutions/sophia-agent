@@ -178,10 +178,20 @@ export class MessageForwardService {
    * Validate phone number format (Cyprus)
    */
   static validatePhoneNumber(phone: string): boolean {
-    // Cyprus phone: +357 followed by 8 digits
-    // Also accept generic international format
-    const phoneRegex = /^\+?(\d{1,4})?\d{8,15}$/;
-    return phoneRegex.test(phone.replace(/[\s-]/g, ''));
+    // Remove spaces and dashes
+    const cleaned = phone.replace(/[\s-]/g, '');
+
+    // Check format: optional +, then digits
+    const formatRegex = /^\+?\d+$/;
+    if (!formatRegex.test(cleaned)) {
+      return false;
+    }
+
+    // Extract just the digits
+    const digits = cleaned.replace(/\+/g, '');
+
+    // E.164 standard: 7-15 digits total (including country code)
+    return digits.length >= 7 && digits.length <= 15;
   }
 }
 

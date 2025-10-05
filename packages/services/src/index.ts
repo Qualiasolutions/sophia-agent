@@ -31,3 +31,19 @@ export {
   getTelegramRateLimiter,
   getWhatsAppRateLimiter,
 } from './rate-limiter.service';
+
+// Logging
+export {
+  LoggerService,
+  createLogger,
+  type LogLevel,
+  type LogContext,
+} from './logger.service';
+
+// Metrics
+export {
+  MetricsService,
+  getMetricsService,
+  type MetricValue,
+  type SystemMetrics,
+} from './metrics.service';
