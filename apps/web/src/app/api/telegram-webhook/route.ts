@@ -11,11 +11,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramUpdate } from '@sophiaai/shared';
 import {
-  telegramService,
+  getTelegramService,
   TelegramService,
-  telegramAuthService,
+  getTelegramAuthService,
   TelegramAuthService,
-  messageForwardService,
+  getMessageForwardService,
   MessageForwardService,
   getAssistantService,
   getTelegramRateLimiter,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         // Send rate limit message to user
         const chatId = update.message?.chat.id || update.edited_message?.chat.id;
         if (chatId) {
-          await telegramService.sendMessage(
+          await getTelegramService().sendMessage(
             chatId,
             `⏱️ *Rate limit exceeded*\n\nPlease wait ${resetIn} seconds before sending more messages.`,
             { parse_mode: 'Markdown' }
@@ -165,7 +165,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
   try {
     // Story 6.2: Check if user is registered
-    const isRegistered = await telegramAuthService.isUserRegistered(userId);
+    const isRegistered = await getTelegramAuthService().isUserRegistered(userId);
 
     if (!isRegistered) {
       // Handle registration flow
@@ -174,7 +174,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       if (state === 'awaiting_email') {
         // User is providing their email
         if (!TelegramAuthService.validateEmail(text)) {
-          await telegramService.sendMessage(
+          await getTelegramService().sendMessage(
             chatId,
             '❌ Invalid email format. Please provide a valid email address registered with Sophia.',
             { parse_mode: 'Markdown' }
@@ -183,10 +183,10 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
         }
 
         // Check if agent exists with this email
-        const agent = await telegramAuthService.getAgentByEmail(text);
+        const agent = await getTelegramAuthService().getAgentByEmail(text);
 
         if (!agent) {
-          await telegramService.sendMessage(
+          await getTelegramService().sendMessage(
             chatId,
             `❌ No active agent found with email: ${text}\n\nPlease make sure you're registered as an agent with Sophia first, or contact your administrator.`,
             { parse_mode: 'Markdown' }
@@ -196,7 +196,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
         }
 
         // Register the Telegram user
-        await telegramAuthService.registerTelegramUser({
+        await getTelegramAuthService().registerTelegramUser({
           telegramUserId: userId,
           chatId,
           agentId: agent.id,
@@ -215,7 +215,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
         registrationState.set(userId, 'completed');
 
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `✅ *Registration successful!*\n\nWelcome to Sophia AI, ${firstName}!\n\nYou can now:\n• Get AI-powered assistance\n• Generate documents\n• Use calculators\n• Forward messages to WhatsApp\n\nJust send me a message and I'll help you! 🚀`,
           { parse_mode: 'Markdown' }
@@ -227,7 +227,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
         // Start registration
         registrationState.set(userId, 'awaiting_email');
 
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `👋 *Welcome to Sophia AI!*\n\nTo get started, please provide your registered email address.\n\nExample: john@zyprus.com`,
           { parse_mode: 'Markdown' }
@@ -237,10 +237,10 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
     }
 
     // User is registered - update last active
-    await telegramAuthService.updateLastActive(userId);
+    await getTelegramAuthService().updateLastActive(userId);
 
     // Get user's agent ID for forwarding
-    const telegramUser = await telegramAuthService.getTelegramUser(userId);
+    const telegramUser = await getTelegramAuthService().getTelegramUser(userId);
     if (!telegramUser) {
       throw new Error('Telegram user not found after registration check');
     }
@@ -250,7 +250,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
     if (forwardParsed.isForwardCommand) {
       if (!forwardParsed.recipient || !forwardParsed.message) {
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `❌ Invalid forward command format.\n\nUse one of these formats:\n• \`forward to +35799123456: Your message\`\n• \`/forward +35799123456 Your message\``,
           { parse_mode: 'Markdown' }
@@ -260,7 +260,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
       // Validate phone number
       if (!MessageForwardService.validatePhoneNumber(forwardParsed.recipient)) {
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `❌ Invalid phone number format.\n\nPlease use international format, e.g., +35799123456`,
           { parse_mode: 'Markdown' }
@@ -269,13 +269,13 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       }
 
       // Forward the message
-      await telegramService.sendMessage(
+      await getTelegramService().sendMessage(
         chatId,
         `📤 Forwarding message to ${forwardParsed.recipient}...`,
         { parse_mode: 'Markdown' }
       );
 
-      const result = await messageForwardService.forwardToWhatsApp({
+      const result = await getMessageForwardService().forwardToWhatsApp({
         agentId: telegramUser.agent_id,
         telegramChatId: chatId.toString(),
         recipientPhone: forwardParsed.recipient,
@@ -293,13 +293,13 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       metrics.trackMessageForward(result.success);
 
       if (result.success) {
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `✅ Message forwarded successfully to ${forwardParsed.recipient} via WhatsApp!`,
           { parse_mode: 'Markdown' }
         );
       } else {
-        await telegramService.sendMessage(
+        await getTelegramService().sendMessage(
           chatId,
           `❌ Failed to forward message: ${result.error}\n\nPlease try again later.`,
           { parse_mode: 'Markdown' }
@@ -343,7 +343,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
     metrics.trackPerformance('aiResponseTime', aiDuration);
 
     // Send AI response
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       aiResponse,
       { parse_mode: 'Markdown' }
@@ -375,7 +375,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 
     metrics.trackError('telegram');
 
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ An error occurred processing your message. Please try again later.',
       { parse_mode: 'Markdown' }

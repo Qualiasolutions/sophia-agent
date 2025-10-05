@@ -7,27 +7,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, GET } from '../route';
 import { NextRequest } from 'next/server';
 
+// Create mock service instances
+const mockTelegramService = {
+  sendMessage: vi.fn(),
+};
+
+const mockTelegramAuthService = {
+  isUserRegistered: vi.fn(),
+  getTelegramUser: vi.fn(),
+  getAgentByEmail: vi.fn(),
+  registerTelegramUser: vi.fn(),
+  updateLastActive: vi.fn(),
+};
+
+const mockMessageForwardService = {
+  forwardToWhatsApp: vi.fn(),
+};
+
 // Mock services
 vi.mock('@sophiaai/services', () => ({
-  telegramService: {
-    sendMessage: vi.fn(),
-  },
+  getTelegramService: vi.fn(() => mockTelegramService),
   TelegramService: {
     validateWebhookSignature: vi.fn(),
   },
-  telegramAuthService: {
-    isUserRegistered: vi.fn(),
-    getTelegramUser: vi.fn(),
-    getAgentByEmail: vi.fn(),
-    registerTelegramUser: vi.fn(),
-    updateLastActive: vi.fn(),
-  },
+  getTelegramAuthService: vi.fn(() => mockTelegramAuthService),
   TelegramAuthService: {
     validateEmail: vi.fn(),
   },
-  messageForwardService: {
-    forwardToWhatsApp: vi.fn(),
-  },
+  getMessageForwardService: vi.fn(() => mockMessageForwardService),
   MessageForwardService: {
     parseForwardCommand: vi.fn(),
     validatePhoneNumber: vi.fn(() => true),
@@ -138,10 +145,10 @@ describe('Telegram Webhook Endpoint', () => {
 
   describe('POST - User Registration Flow', () => {
     it('should prompt unregistered user for email', async () => {
-      const { TelegramService, telegramAuthService, telegramService } = await import('@sophiaai/services');
+      const { TelegramService,   } = await import('@sophiaai/services');
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
-      (telegramAuthService.isUserRegistered as any).mockResolvedValueOnce(false);
+      (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(false);
 
       (mockRequest.json as any).mockResolvedValueOnce({
         update_id: 123,
@@ -159,7 +166,7 @@ describe('Telegram Webhook Endpoint', () => {
       // Allow async processing to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(telegramService.sendMessage).toHaveBeenCalledWith(
+      expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
         789,
         expect.stringContaining('Welcome to Sophia AI'),
         expect.any(Object)
@@ -169,19 +176,19 @@ describe('Telegram Webhook Endpoint', () => {
     it('should validate email and register user', async () => {
       const {
         TelegramService,
-        telegramAuthService,
+        
         TelegramAuthService,
-        telegramService
+        
       } = await import('@sophiaai/services');
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
-      (telegramAuthService.isUserRegistered as any).mockResolvedValueOnce(false);
+      (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(false);
       (TelegramAuthService.validateEmail as any).mockReturnValueOnce(true);
-      (telegramAuthService.getAgentByEmail as any).mockResolvedValueOnce({
+      (mockTelegramAuthService.getAgentByEmail as any).mockResolvedValueOnce({
         id: 'agent-123',
         email: 'test@zyprus.com',
       });
-      (telegramAuthService.registerTelegramUser as any).mockResolvedValueOnce({
+      (mockTelegramAuthService.registerTelegramUser as any).mockResolvedValueOnce({
         id: 'user-123',
         agent_id: 'agent-123',
       });
@@ -202,8 +209,8 @@ describe('Telegram Webhook Endpoint', () => {
       // Allow async processing to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(telegramAuthService.registerTelegramUser).toHaveBeenCalled();
-      expect(telegramService.sendMessage).toHaveBeenCalledWith(
+      expect(mockTelegramAuthService.registerTelegramUser).toHaveBeenCalled();
+      expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
         789,
         expect.stringContaining('Registration successful'),
         expect.any(Object)
@@ -215,15 +222,15 @@ describe('Telegram Webhook Endpoint', () => {
     it('should handle forward command', async () => {
       const {
         TelegramService,
-        telegramAuthService,
+        
         MessageForwardService,
-        messageForwardService,
-        telegramService
+        
+        
       } = await import('@sophiaai/services');
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
-      (telegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
-      (telegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
+      (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
+      (mockTelegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
         id: 'user-123',
         agent_id: 'agent-456',
       });
@@ -232,7 +239,7 @@ describe('Telegram Webhook Endpoint', () => {
         recipient: '+35799123456',
         message: 'Test forward',
       });
-      (messageForwardService.forwardToWhatsApp as any).mockResolvedValueOnce({
+      (mockMessageForwardService.forwardToWhatsApp as any).mockResolvedValueOnce({
         success: true,
       });
 
@@ -252,7 +259,7 @@ describe('Telegram Webhook Endpoint', () => {
       // Allow async processing to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(messageForwardService.forwardToWhatsApp).toHaveBeenCalledWith({
+      expect(mockMessageForwardService.forwardToWhatsApp).toHaveBeenCalledWith({
         agentId: 'agent-456',
         telegramChatId: '789',
         recipientPhone: '+35799123456',
@@ -266,10 +273,10 @@ describe('Telegram Webhook Endpoint', () => {
     it('should process AI conversation for registered user', async () => {
       const {
         TelegramService,
-        telegramAuthService,
+        
         MessageForwardService,
         getAssistantService,
-        telegramService
+        
       } = await import('@sophiaai/services');
 
       const mockAssistant = {
@@ -279,8 +286,8 @@ describe('Telegram Webhook Endpoint', () => {
       };
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
-      (telegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
-      (telegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
+      (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
+      (mockTelegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
         id: 'user-123',
         agent_id: 'agent-456',
       });
@@ -311,7 +318,7 @@ describe('Telegram Webhook Endpoint', () => {
         []
       );
 
-      expect(telegramService.sendMessage).toHaveBeenCalledWith(
+      expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
         789,
         'AI response here',
         { parse_mode: 'Markdown' }
@@ -336,10 +343,10 @@ describe('Telegram Webhook Endpoint', () => {
     it('should send error message to user on processing failure', async () => {
       const {
         TelegramService,
-        telegramAuthService,
+        
         MessageForwardService,
         getAssistantService,
-        telegramService
+        
       } = await import('@sophiaai/services');
 
       const mockAssistant = {
@@ -347,8 +354,8 @@ describe('Telegram Webhook Endpoint', () => {
       };
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
-      (telegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
-      (telegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
+      (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
+      (mockTelegramAuthService.getTelegramUser as any).mockResolvedValueOnce({
         id: 'user-123',
         agent_id: 'agent-456',
       });
@@ -373,7 +380,7 @@ describe('Telegram Webhook Endpoint', () => {
       // Allow async processing to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(telegramService.sendMessage).toHaveBeenCalledWith(
+      expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
         789,
         expect.stringContaining('error occurred'),
         expect.any(Object)
