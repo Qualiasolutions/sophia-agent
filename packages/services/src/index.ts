@@ -24,3 +24,10 @@ export {
   getMessageForwardService,
   messageForwardService,
 } from './message-forward.service';
+
+// Rate limiting
+export {
+  RateLimiterService,
+  getTelegramRateLimiter,
+  getWhatsAppRateLimiter,
+} from './rate-limiter.service';

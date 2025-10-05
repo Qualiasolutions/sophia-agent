@@ -18,6 +18,7 @@ import {
   messageForwardService,
   MessageForwardService,
   getAssistantService,
+  getTelegramRateLimiter,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
 
@@ -25,6 +26,9 @@ const WEBHOOK_SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || 'default-sec
 
 // Store registration state (in production, use Redis or database)
 const registrationState = new Map<number, 'awaiting_email' | 'completed'>();
+
+// Rate limiter instance
+const rateLimiter = getTelegramRateLimiter();
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +45,33 @@ export async function POST(request: NextRequest) {
 
     // Parse incoming update
     const update: TelegramUpdate = await request.json();
+
+    // Extract user ID for rate limiting
+    const userId = update.message?.from?.id || update.edited_message?.from?.id;
+
+    if (userId) {
+      // Check rate limit
+      const rateLimit = rateLimiter.checkLimit(userId.toString());
+
+      if (!rateLimit.allowed) {
+        const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+        console.warn(`Rate limit exceeded for user ${userId}, resets in ${resetIn}s`);
+
+        // Send rate limit message to user
+        const chatId = update.message?.chat.id || update.edited_message?.chat.id;
+        if (chatId) {
+          await telegramService.sendMessage(
+            chatId,
+            `⏱️ *Rate limit exceeded*\n\nPlease wait ${resetIn} seconds before sending more messages.`,
+            { parse_mode: 'Markdown' }
+          ).catch(err => console.error('Failed to send rate limit message:', err));
+        }
+
+        return NextResponse.json({ ok: true }); // Still return 200 to acknowledge webhook
+      }
+
+      console.log(`Rate limit: ${rateLimit.remaining} remaining for user ${userId}`);
+    }
 
     console.log('Received Telegram update:', update.update_id);
 
