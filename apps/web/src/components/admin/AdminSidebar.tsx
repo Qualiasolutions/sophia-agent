@@ -37,7 +37,7 @@ export default function AdminSidebar() {
         <div className="flex min-h-0 flex-1 flex-col bg-gray-800">
           {/* Logo */}
           <div className="flex h-16 flex-shrink-0 items-center px-4 bg-gray-900">
-            <h1 className="text-white text-xl font-bold">Sophia Admin</h1>
+            <h1 className="text-white text-xl font-bold">Qualia AI Agents Suite™</h1>
           </div>
 
           {/* Navigation */}

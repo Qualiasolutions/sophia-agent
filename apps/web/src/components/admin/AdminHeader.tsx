@@ -20,8 +20,12 @@ export default function AdminHeader({ session }: AdminHeaderProps) {
   return (
     <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow">
       <div className="flex flex-1 justify-between px-4 sm:px-6 lg:px-8">
-        {/* Left side - empty for now, can add breadcrumbs later */}
-        <div className="flex flex-1"></div>
+        {/* Left side - brand */}
+        <div className="flex flex-1 items-center">
+          <span className="text-lg font-semibold text-gray-900">
+            Qualia AI Agents Suite™
+          </span>
+        </div>
 
         {/* Right side - User info and logout */}
         <div className="ml-4 flex items-center md:ml-6">

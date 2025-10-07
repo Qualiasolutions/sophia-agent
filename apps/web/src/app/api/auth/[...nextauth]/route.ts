@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: 'admin',
             email: 'admin@qualiasolutions.com',
-            name: 'Qualia Admin',
+            name: 'Qualia AI Agents Suite™ Admin',
             role: 'admin',
           };
         }

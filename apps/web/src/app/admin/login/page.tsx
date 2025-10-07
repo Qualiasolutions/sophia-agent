@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Sophia Admin
+              Qualia AI Agents Suite™
             </h1>
             <p className="text-sm text-gray-600">
               Enter your access code to continue
