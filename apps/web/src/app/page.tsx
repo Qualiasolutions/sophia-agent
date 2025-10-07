@@ -19,10 +19,10 @@ export default function Home() {
               />
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
-              SophiaAI
+              Qualia AI Agents Suite™
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-light">
-              Intelligent WhatsApp Assistant for Cyprus Real Estate
+              Unified AI operations hub for Cyprus real estate teams
             </p>
           </div>
 

@@ -8,7 +8,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-const ADMIN_ACCESS_CODE = 'Qualia5162786';
+const ADMIN_ACCESS_CODE = '123123';
 
 export const authOptions: NextAuthOptions = {
   providers: [
