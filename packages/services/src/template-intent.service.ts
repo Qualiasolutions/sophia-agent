@@ -41,9 +41,9 @@ export class TemplateIntentClassifier {
         /\b(client\s+registration|buyer\s+registration|tenant\s+registration)\b/i
       ],
       templateMappings: {
-        'seller': ['seller_registration_standard', 'seller_registration_marketing', 'seller_registration_rental', 'seller_registration_advanced'],
-        'developer': ['developer_registration_viewing_arranged', 'developer_registration_no_viewing'],
-        'bank': ['bank_registration_property', 'bank_registration_land']
+        'seller': ['standard_registration_to_sellers', 'registration_and_marketing_agreement', 'very_advanced_registration', 'standard_registration_for_rentals_to_landlords'],
+        'developer': ['developer_registration_viewing_arranged', 'developer_registration_no_viewing_arranged'],
+        'bank': ['property_registration_banks', 'land_registration_banks']
       },
       requiredFields: {
         'seller': ['client_name', 'property_introduced', 'viewing_datetime', 'property_link'],
@@ -51,7 +51,8 @@ export class TemplateIntentClassifier {
         'bank': ['client_name', 'client_phone', 'property_link_or_description', 'agent_phone']
       },
       suggestedQuestions: {
-        'seller': ['Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?', 'Do you want standard registration or marketing agreement together?'],
+        'seller': ['Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?'],
+        'seller_subtype': ['Which seller registration do you need: (1) Standard Registration, (2) Registration and Marketing Agreement, (3) Very Advanced Registration, or (4) Rental Registration?'],
         'developer': ['What is the client name?', 'Is a viewing arranged?'],
         'bank': ['What is the client full name?', 'What is the property link or description?']
       }

@@ -117,53 +117,58 @@ export class TemplateInstructionService {
    * Initialize micro-instructions for all templates
    */
   private initializeMicroInstructions(): void {
-    // Registration Templates
+    // Registration Templates (11 new documents)
     this.createRegistrationInstructions();
 
-    // Email Templates
+    // Email Templates (keep existing)
     this.createEmailInstructions();
 
-    // Viewing Templates
+    // Viewing Templates (keep existing)
     this.createViewingInstructions();
 
-    // Agreement Templates
+    // Agreement Templates (keep existing)
     this.createAgreementInstructions();
 
-    // Social Media Templates
+    // Social Media Templates (keep existing)
     this.createSocialInstructions();
   }
 
   /**
-   * Create registration template instructions
+   * Create registration template instructions (11 new templates)
    */
   private createRegistrationInstructions(): void {
-    // Seller Registration Standard
-    this.microInstructionsCache.set('seller_registration_standard', {
-      templateId: 'seller_registration_standard',
+    // 1. Standard Registration to Sellers
+    this.microInstructionsCache.set('standard_registration_to_sellers', {
+      templateId: 'standard_registration_to_sellers',
       category: 'registration',
-      instructions: `You are generating a standard seller registration document.
+      instructions: `You are generating a STANDARD REGISTRATION TO SELLERS.
 
-Collect these required fields:
-1. Client Information (buyer name(s))
-2. Property Introduced (reg no. or description)
-3. Property Link (use "Not provided" if blank)
-4. Viewing Arranged For (date & time)
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
 
-Optional: Ask about immediate-relatives security clause.
+Required fields to collect:
+1. **Client Information:** Buyer name(s) - ask if single or multiple buyers
+2. **Property Introduced:** Reg number or description
+3. **Property Link:** Optional but ask if available
+4. **Viewing Arranged for:** Date and time
 
-Output format:
-- Use greeting with seller name or "XXXXX" fallback
-- Use exact template wording with {{VARIABLE}} replacements
-- Bold field labels with *asterisks*
-- Mask phone numbers with XX (99 07 67 32 → 99 XX 67 32)
-- Include subject line
-- No confirmation step - output document immediately after collecting fields`,
+Formatting rules:
+- Phone masking: 99 07 67 32 → 99 ** 67 32
+- Use exact template wording from the source document
+- Maintain original formatting and structure
+- Add examples if user needs clarification
 
-      requiredFields: ['CLIENT_INFORMATION', 'PROPERTY_INTRODUCED', 'VIEWING_DATETIME'],
-      optionalFields: ['PROPERTY_LINK', 'SELLER_NAME'],
+If user doesn't mention viewing time, ask: "What date and time should I schedule the viewing?"`,
+
+      requiredFields: ['client_name', 'property_introduced', 'viewing_datetime'],
+      optionalFields: ['property_link', 'seller_name'],
       validationRules: [
-        { field: 'VIEWING_DATETIME', rule: 'Must include date and time' },
-        { field: 'CLIENT_INFORMATION', rule: 'Must include buyer name(s)' }
+        { field: 'client_name', rule: 'Must include buyer name(s)' },
+        { field: 'viewing_datetime', rule: 'Must include date and time' }
       ],
       outputFormat: {
         boldLabels: true,
@@ -173,46 +178,45 @@ Output format:
         noConfirmation: true
       },
       estimatedTokens: 25,
-      contextExamples: [
-        {
-          input: 'Standard registration. Client: Nikos Georgiou. Property: 0/1789 Tala. Viewing: Saturday 14:00',
-          output: 'Ask for property link and security clause preference, then generate document',
-          explanation: 'Collect missing optional fields before generating'
-        }
-      ]
+      contextExamples: []
     });
 
-    // Seller Registration Marketing
-    this.microInstructionsCache.set('seller_registration_marketing', {
-      templateId: 'seller_registration_marketing',
+    // 2. Registration and Marketing Agreement
+    this.microInstructionsCache.set('registration_and_marketing_agreement', {
+      templateId: 'registration_and_marketing_agreement',
       category: 'registration',
-      instructions: `You are generating a seller registration with marketing agreement.
+      instructions: `You are generating a REGISTRATION AND MARKETING AGREEMENT.
 
-Collect these required fields:
-1. Client Information (buyer name(s))
-2. Property Introduced (reg no. or description)
-3. Property Link (use "Not provided" if blank)
-4. Viewing Arranged For (date & time)
-5. Agency Fee % (default to 2% if not provided)
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Client Information:** Buyer name(s)
+2. **Property Introduced:** Reg number or description
+3. **Viewing arranged for:** Date and time
+4. **Fees:** Agency fee percentage (default 5% + VAT if not specified)
 
 Optional clauses to ask about:
-- No-direct-contact clause
-- Immediate-relatives security clause
+- No-direct-contact clause (red note - can be removed if requested)
+- Multiple sellers authorization clause if only one confirms
 
-Output format:
-- Use greeting with seller name
-- Include all optional clauses if agent agrees
-- Always append title deed reminder from template
-- Bold field labels with *asterisks*
-- Mask phone numbers with XX
-- Include subject line
-- No confirmation step`,
+Formatting rules:
+- Phone masking: 99 07 67 32 → 99 ** 67 32
+- Include red notes about optional clauses
+- Add title deed reminder note
+- Use exact template wording
 
-      requiredFields: ['CLIENT_INFORMATION', 'PROPERTY_INTRODUCED', 'VIEWING_DATETIME', 'AGENCY_FEE_PERCENT'],
-      optionalFields: ['PROPERTY_LINK', 'SELLER_NAME', 'NO_DIRECT_CONTACT_CLAUSE', 'IMMEDIATE_RELATIVES_CLAUSE'],
+If user doesn't specify agency fee, ask: "What agency fee percentage should I include?"`,
+
+      requiredFields: ['client_name', 'property_introduced', 'viewing_datetime', 'agency_fee'],
+      optionalFields: ['property_link', 'no_direct_contact_clause', 'multiple_sellers_clause'],
       validationRules: [
-        { field: 'AGENCY_FEE_PERCENT', rule: 'Must be a percentage or "Not provided"' },
-        { field: 'VIEWING_DATETIME', rule: 'Must include date and time' }
+        { field: 'agency_fee', rule: 'Must specify percentage' },
+        { field: 'client_name', rule: 'Must include buyer name(s)' }
       ],
       outputFormat: {
         boldLabels: true,
@@ -222,62 +226,360 @@ Output format:
         noConfirmation: true
       },
       estimatedTokens: 30,
-      contextExamples: [
-        {
-          input: 'Marketing registration. Agency fee 2%. Include both clauses.',
-          output: 'Collect client info, property details, viewing time, then generate with clauses',
-          explanation: 'Include both optional clauses when requested'
-        }
-      ]
+      contextExamples: []
     });
 
-    // Bank Registration Property
-    this.microInstructionsCache.set('bank_registration_property', {
-      templateId: 'bank_registration_property',
+    // 3. Very Advanced Registration
+    this.microInstructionsCache.set('very_advanced_registration', {
+      templateId: 'very_advanced_registration',
       category: 'registration',
-      instructions: `You are generating a bank property registration.
+      instructions: `You are generating a VERY ADVANCED REGISTRATION.
 
-Collect these required fields:
-1. Client full name
-2. Client phone number (mask middle digits)
-3. Property link OR property registration/description
-4. Agent phone number (mask middle digits)
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
 
-Auto-detect bank team from URL:
-- remuproperties → Remu Team
-- gordian → Gordian Team
-- altia → Altia Team
-- altamira → Altamira Team
-- No match → "Dear Team"
+Required fields to collect:
+1. **Client Information:** Buyer name and related companies
+2. **Property Introduced:** Multiple registration numbers if applicable
+3. **Our Agency Fees:** Percentage (default 4% + VAT)
+4. **Payment Terms:** Usually 50% upfront (confirm if different)
+5. **Owner Entities:** All legal owners being represented
 
-Output format:
-- Use detected team greeting
-- Use exact template wording
-- Mask all phone numbers
-- Include subject line
-- No confirmation step`,
+Important notes to include:
+- This is for rare cases with multiple sellers or complex payment arrangements
+- Include notes about payment timing
+- Ask about viewing arrangements (may not be needed for full registration)
 
-      requiredFields: ['CLIENT_FULL_NAME', 'CLIENT_PHONE', 'PROPERTY_LINK_OR_DESCRIPTION', 'AGENT_PHONE'],
-      optionalFields: ['BANK_TEAM'],
+If user doesn't specify payment terms, ask: "What are the payment terms - should I specify 50% upfront?"`,
+
+      requiredFields: ['client_name', 'property_introduced', 'agency_fee', 'payment_terms', 'owner_entities'],
+      optionalFields: ['viewing_arrangement', 'complex_payment_notes'],
       validationRules: [
-        { field: 'CLIENT_PHONE', rule: 'Must be valid phone number' },
-        { field: 'AGENT_PHONE', rule: 'Must be valid phone number' }
+        { field: 'client_name', rule: 'Must include buyer name(s)' },
+        { field: 'agency_fee', rule: 'Must specify percentage' }
       ],
       outputFormat: {
         boldLabels: true,
         maskPhoneNumbers: true,
         includeSubjectLine: true,
+        appendReminders: true,
+        noConfirmation: true
+      },
+      estimatedTokens: 35,
+      contextExamples: []
+    });
+
+    // 4. Standard Registration for Rentals
+    this.microInstructionsCache.set('standard_registration_for_rentals_to_landlords', {
+      templateId: 'standard_registration_for_rentals_to_landlords',
+      category: 'registration',
+      instructions: `You are generating a STANDARD REGISTRATION FOR RENTALS.
+
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Client Information:** Potential tenant name(s)
+2. **Property Introduced:** Property description
+3. **Viewing Arranged for:** Date and time
+4. **Fees:** First month's rental amount
+
+Special notes:
+- Use "landlord" instead of "seller"
+- Use "tenant" instead of "buyer"
+- Include optional clause about multiple sellers if needed
+- Add red notes about optional clauses
+
+If user doesn't specify rental amount, ask: "What is the monthly rental amount for the property?"`,
+
+      requiredFields: ['tenant_name', 'property_introduced', 'viewing_datetime', 'rental_fee'],
+      optionalFields: ['property_link', 'multiple_sellers_clause'],
+      validationRules: [
+        { field: 'tenant_name', rule: 'Must include tenant name(s)' },
+        { field: 'rental_fee', rule: 'Must specify rental amount' }
+      ],
+      outputFormat: {
+        boldLabels: true,
+        maskPhoneNumbers: true,
+        includeSubjectLine: true,
+        appendReminders: true,
+        noConfirmation: true
+      },
+      estimatedTokens: 25,
+      contextExamples: []
+    });
+
+    // 5. Property Registration Banks
+    this.microInstructionsCache.set('property_registration_banks', {
+      templateId: 'property_registration_banks',
+      category: 'registration',
+      instructions: `You are generating a PROPERTY REGISTRATION FOR BANKS.
+
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Bank Team:** Auto-detect from URL or ask (Remu Team, Gordian Team, Altia Team, etc.)
+2. **Agent Mobile:** Phone number (will be masked)
+3. **Registration Details:** Client name + phone (masked)
+4. **Property Link:** Must be from bank
+
+Phone masking rules:
+- Agent: 99 07 67 32 → 99 ** 67 32
+- Client: +44 79 83 24 71 → +44 79 ** 83 24 71
+
+Auto-detection:
+- remuproperties.com → "Dear Remu Team"
+- If bank not clear from URL, ask: "Which bank team should I address this to?"`,
+
+      requiredFields: ['bank_team', 'agent_mobile', 'client_name_phone', 'property_link'],
+      optionalFields: [],
+      validationRules: [
+        { field: 'property_link', rule: 'Must be bank property link' },
+        { field: 'client_name_phone', rule: 'Must include client name and phone' }
+      ],
+      outputFormat: {
+        boldLabels: false,
+        maskPhoneNumbers: true,
+        includeSubjectLine: false,
         appendReminders: false,
         noConfirmation: true
       },
       estimatedTokens: 20,
-      contextExamples: [
-        {
-          input: 'Bank registration for remuproperties',
-          output: 'Greet "Dear Remu Team", collect client details, generate document',
-          explanation: 'Auto-detect bank team from URL'
-        }
-      ]
+      contextExamples: []
+    });
+
+    // 6. Land Registration Banks
+    this.microInstructionsCache.set('land_registration_banks', {
+      templateId: 'land_registration_banks',
+      category: 'registration',
+      instructions: `You are generating a LAND REGISTRATION FOR BANKS.
+
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Bank Team:** Auto-detect from URL or ask
+2. **Agent Mobile:** Phone number (will be masked)
+3. **Registration Details:** Client name + phone (masked)
+4. **Property Link:** Must be from bank
+5. **Viewing Form:** Must be attached (remind user)
+
+Important notes:
+- Remind user: "Don't forget to attach the viewing form when sending"
+- Banks require viewing forms because sales staff don't attend viewings
+- Phone masking applies to all numbers
+
+If user doesn't mention viewing form, remind: "Please remember to attach the viewing form for land registrations."`,
+
+      requiredFields: ['bank_team', 'agent_mobile', 'client_name_phone', 'property_link'],
+      optionalFields: ['viewing_form_reminder'],
+      validationRules: [
+        { field: 'property_link', rule: 'Must be bank property link' },
+        { field: 'client_name_phone', rule: 'Must include client name and phone' }
+      ],
+      outputFormat: {
+        boldLabels: false,
+        maskPhoneNumbers: true,
+        includeSubjectLine: false,
+        appendReminders: true,
+        noConfirmation: true
+      },
+      estimatedTokens: 22,
+      contextExamples: []
+    });
+
+    // 7. Developer Registration Viewing Arranged
+    this.microInstructionsCache.set('developer_registration_viewing_arranged', {
+      templateId: 'developer_registration_viewing_arranged',
+      category: 'registration',
+      instructions: `You are generating a DEVELOPER REGISTRATION (VIEWING ARRANGED).
+
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Developer Contact:** Person name at developer company
+2. **Registration Details:** Client name(s)
+3. **Viewing Arranged for:** Date and time
+4. **Fees:** Agency fee percentage (default 8% + VAT)
+5. **Payment Terms:** "Payable in full on the first 30% payment"
+
+Important notes:
+- Ask about project name and location if provided
+- Confirm agency fee percentage
+- Include acceptance clause at the end
+
+If user doesn't specify agency fee, ask: "What agency fee percentage should I include (default is 8% + VAT)?"`,
+
+      requiredFields: ['developer_contact', 'client_name', 'viewing_datetime', 'agency_fee'],
+      optionalFields: ['project_name', 'location'],
+      validationRules: [
+        { field: 'agency_fee', rule: 'Must specify percentage' },
+        { field: 'viewing_datetime', rule: 'Must include date and time' }
+      ],
+      outputFormat: {
+        boldLabels: true,
+        maskPhoneNumbers: false,
+        includeSubjectLine: true,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 25,
+      contextExamples: []
+    });
+
+    // 8. Developer Registration No Viewing Arranged
+    this.microInstructionsCache.set('developer_registration_no_viewing_arranged', {
+      templateId: 'developer_registration_no_viewing_arranged',
+      category: 'registration',
+      instructions: `You are generating a DEVELOPER REGISTRATION (NO VIEWING ARRANGED).
+
+CRITICAL RULES:
+- DO NOT generate document until ALL required fields are collected
+- Ask for missing information BEFORE generating
+- Use **bold formatting** for field labels: **Field Name:**
+- Copy-paste exact template structure, only replace variables
+- No confirmation step - generate immediately after collecting all fields
+
+Required fields to collect:
+1. **Developer Contact:** Person name at developer company
+2. **Registration Details:** Client name(s)
+3. **Fees:** Agency fee percentage (default 8% + VAT)
+4. **Payment Terms:** "Payable in full on the first 30% payment"
+
+Important notes:
+- Include full registration clause regardless of viewing
+- Add enhanced transparency note
+- Include acceptance of fees and terms
+
+If user doesn't specify agency fee, ask: "What agency fee percentage should I include (default is 8% + VAT)?"`,
+
+      requiredFields: ['developer_contact', 'client_name', 'agency_fee'],
+      optionalFields: [],
+      validationRules: [
+        { field: 'agency_fee', rule: 'Must specify percentage' },
+        { field: 'client_name', rule: 'Must include client name(s)' }
+      ],
+      outputFormat: {
+        boldLabels: true,
+        maskPhoneNumbers: false,
+        includeSubjectLine: true,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 22,
+      contextExamples: []
+    });
+
+    // 9. Developer Registration Notes
+    this.microInstructionsCache.set('developer_registration_notes', {
+      templateId: 'developer_registration_notes',
+      category: 'registration',
+      instructions: `You are generating DEVELOPER REGISTRATION NOTES.
+
+This is an informational template about agency fees.
+
+Required fields to collect:
+- Ask user what agency fee to add: 5%, 8%, or something else
+
+This is a simple response - no complex document generation needed.`,
+
+      requiredFields: ['agency_fee_preference'],
+      optionalFields: [],
+      validationRules: [],
+      outputFormat: {
+        boldLabels: false,
+        maskPhoneNumbers: false,
+        includeSubjectLine: false,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 10,
+      contextExamples: []
+    });
+
+    // 10. Banks Registration Instructions
+    this.microInstructionsCache.set('banks_registration_instructions', {
+      templateId: 'banks_registration_instructions',
+      category: 'registration',
+      instructions: `You are generating BANKS REGISTRATION INSTRUCTIONS.
+
+This contains clarifications for bank registrations:
+
+Key points to explain:
+1. **Phone masking:** 99 07 67 32 → 99 ** 67 32
+2. **Property identification:** If no link available, ask for Reg No. or description
+3. **Bank team detection:** Auto-detect from URL or ask if unclear
+4. **Viewing forms:** Required for land registrations - sales staff don't attend viewings
+
+This is an informational template for agent guidance.`,
+
+      requiredFields: [],
+      optionalFields: ['specific_question'],
+      validationRules: [],
+      outputFormat: {
+        boldLabels: true,
+        maskPhoneNumbers: false,
+        includeSubjectLine: false,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 15,
+      contextExamples: []
+    });
+
+    // 11. Multiple Sellers Registration Clause
+    this.microInstructionsCache.set('multiple_sellers_registration_clause', {
+      templateId: 'multiple_sellers_registration_clause',
+      category: 'registration',
+      instructions: `You are generating a MULTIPLE SELLERS REGISTRATION CLAUSE.
+
+This clause is added when:
+- Multiple sellers exist but only one will confirm registration
+- Need legal authorization confirmation
+
+Required fields to collect:
+- Confirm if only one seller will respond
+- Add the authorization clause to the registration
+
+Clause text:
+"By confirming this email, you also confirm that you are legally authorized to represent and act on behalf of the other co-owner(s) of the subject property."
+
+This is typically added to other registration templates when needed.`,
+
+      requiredFields: ['single_seller_confirmation'],
+      optionalFields: [],
+      validationRules: [],
+      outputFormat: {
+        boldLabels: false,
+        maskPhoneNumbers: false,
+        includeSubjectLine: false,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 12,
+      contextExamples: []
     });
   }
 
@@ -514,13 +816,17 @@ Output format:
         category: 'registration',
         instructions: `You are generating a registration document.
 
-First ask: "Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?"
+IMPORTANT: Follow TWO-STEP clarification process:
 
-For sellers: Always ask "Do you want standard registration or marketing agreement together?"
+Step 1: Ask "Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?"
 
-Use exact template wording, bold labels with *asterisks*, mask phone numbers with XX.`,
-        requiredFields: ['REGISTRATION_TYPE'],
-        optionalFields: ['INCLUDE_MARKETING'],
+Step 2: If they say "Seller(s)", ask "Which seller registration do you need: (1) Standard Registration, (2) Registration and Marketing Agreement, (3) Very Advanced Registration, or (4) Rental Registration?"
+
+ONLY AFTER both steps are complete, start collecting required fields for the specific template.
+
+Use exact template wording, bold labels with **asterisks**, mask phone numbers with XX.`,
+        requiredFields: ['REGISTRATION_TYPE', 'SELLER_SUBTYPE'],
+        optionalFields: [],
         validationRules: [],
         outputFormat: {
           boldLabels: true,
