@@ -31,14 +31,14 @@ export class TemplateIntentClassifier {
     {
       category: 'registration',
       keywords: [
-        'registration', 'register', 'seller', 'developer', 'bank',
+        'registration', 'register', 'registeration', 'registraton', 'seller', 'developer', 'bank',
         'client registration', 'buyer registration', 'tenant registration',
         'landlord registration', 'standard registration', 'marketing agreement'
       ],
       patterns: [
-        /\b(registration|register|seller|developer|bank)\b/i,
-        /\b(marketing\s+agreement|standard\s+registration|rental\s+registration)\b/i,
-        /\b(client\s+registration|buyer\s+registration|tenant\s+registration)\b/i
+        /\b(registration|register|registeration|registraton|seller|developer|bank)\b/i,
+        /\b(marketing\s+agreement|standard\s+registration|standard\s+registeration|rental\s+registration)\b/i,
+        /\b(client\s+registration|client\s+registeration|buyer\s+registration|tenant\s+registration)\b/i
       ],
       templateMappings: {
         'seller': ['standard_registration_to_sellers', 'registration_and_marketing_agreement', 'very_advanced_registration', 'standard_registration_for_rentals_to_landlords'],

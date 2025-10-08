@@ -27,11 +27,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     console.log('=== WEBHOOK FORM DATA ===', { formData: allFormData });
 
+    const messageBody = formData.get('Body')?.toString();
+    const fromNumber = formData.get('From')?.toString();
     const messageStatus = formData.get('MessageStatus')?.toString();
     const messageSid = formData.get('MessageSid')?.toString();
 
-    // Check if this is a status callback (not an incoming message)
-    if (messageStatus && messageSid) {
+    // Check if this is a status callback (no message body, but has status)
+    if (!messageBody && messageStatus && messageSid) {
       console.log('DEBUG: Status callback detected', { messageStatus, messageSid });
       // This is a delivery status update
       void processStatusUpdateAsync(messageSid, messageStatus);
@@ -41,10 +43,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         headers: { 'Content-Type': 'text/xml' },
       });
     }
-
-    // This is an incoming message
-    const messageBody = formData.get('Body')?.toString();
-    const fromNumber = formData.get('From')?.toString();
 
     // Validate required fields for incoming message
     if (!messageBody || !fromNumber || !messageSid) {
@@ -616,7 +614,7 @@ Just ask me to calculate and I'll guide you through it!`;
  */
 function detectDocumentRequest(message: string): boolean {
   const documentKeywords = [
-    'template', 'document', 'form', 'agreement', 'registration', 'email',
+    'template', 'document', 'form', 'agreement', 'registration', 'registeration', 'registraton', 'registrat', 'email',
     'generate', 'create', 'need', 'draft', 'prepare', 'write', 'make',
     'seller', 'buyer', 'client', 'viewing', 'marketing', 'social media',
     'cra', 'contract', 'listing', 'appointment', 'notice', 'letter'
@@ -639,6 +637,7 @@ function detectDocumentRequest(message: string): boolean {
     /write \w+ (email|letter|template)/i,
     /make \w+ (form|document|template)/i,
     /seller registration/i,
+    /seller registeration/i,
     /buyer registration/i,
     /viewing form/i,
     /marketing agreement/i,

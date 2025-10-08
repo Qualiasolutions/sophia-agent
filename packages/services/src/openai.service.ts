@@ -499,6 +499,9 @@ export class OpenAIService {
       'reg_',
       'reg ',
       'registration',
+      'registeration', // Common typo - missing 's'
+      'registraton',   // Common typo - missing 'i'
+      'registrat',    // Common typo - missing 'on'
       'viewing form',
       'viewing',
       'exclusive',
