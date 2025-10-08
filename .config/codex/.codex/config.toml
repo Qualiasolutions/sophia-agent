@@ -1,0 +1,23 @@
+[mcp_servers.supa]
+command = "npx"
+args = [
+  "-y",
+  "supergateway@3.4.0",
+  "--streamableHttp",
+  "https://mcp.supabase.com/mcp",
+  "--oauth2Bearer",
+  "sbp_f2df55642a9f762d66a3d5a4507163e5a1c46fd5"
+]
+startup_timeout_ms = 60_000
+
+[mcp_servers.s]
+command = "npx"
+args = [
+  "-y",
+  "supergateway@3.4.0",
+  "--streamableHttp",
+  "https://mcp.supabase.com/mcp",
+  "--oauth2Bearer",
+  "sbp_81627daad0af3c1bc0351200c2dc283aa2c7ed0e"
+]
+startup_timeout_ms = 60_000

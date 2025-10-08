@@ -1,0 +1,18 @@
+Subject: Consent for Marketing – {{SELLER_NAME}} – {{PROPERTY_REFERENCE}} - Terms and Conditions
+
+Dear {{SELLER_NAME}},
+
+We hope this email finds you well.
+
+With this email we kindly request your approval for the marketing of your property with CSC Zyprus Property Group LTD under the following terms and conditions.
+
+Property: {{PROPERTY_DESCRIPTION}}
+Marketing Price: {{MARKETING_PRICE}}
+Fees: {{AGENCY_FEE_PERCENT}} + VAT based on the final agreed sold price. If sold to a purchaser introduced to you by CSC Zyprus Property Group LTD.
+
+{{OPTIONAL_NO_DIRECT_CONTACT_CLAUSE}}
+{{OPTIONAL_IMMEDIATE_RELATIVES_CLAUSE}}
+
+If you agree with the above terms and conditions, could you please reply to this email stating: ''Yes I confirm''
+
+Please also add the attachment of the title deed.

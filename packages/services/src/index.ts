@@ -6,6 +6,13 @@ export * from './calculator.service';
 export * from './document-validator.service';
 export * from './document-collection.service';
 
+// Optimized Document Generation Services
+export * from './template-intent.service';
+export * from './template-optimizer.service';
+export * from './template-instructions.service';
+export * from './template-cache.service';
+export * from './document-optimized.service';
+
 // Telegram services with lazy loading
 export {
   TelegramService,

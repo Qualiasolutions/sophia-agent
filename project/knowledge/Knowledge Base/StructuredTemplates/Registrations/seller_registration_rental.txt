@@ -1,0 +1,20 @@
+Subject: Registration – {{CLIENT_INFORMATION}} – {{PROPERTY_REFERENCE}}
+
+Dear {{LANDLORD_NAME}}, (landlord)
+
+This email is to provide you with a registration.
+
+*Client Information:* {{CLIENT_INFORMATION}}
+*Property Introduced:* {{PROPERTY_INTRODUCED}}
+*Property Link:* {{PROPERTY_LINK}}
+*Viewing Arranged for:* {{VIEWING_DATETIME}}
+*Fees:* The first agreed monthly rental amount of the property. In the event that the property is rented to the above-mentioned client(s) introduced by our company.
+
+{{OPTIONAL_NO_DIRECT_CONTACT_CLAUSE}}
+{{OPTIONAL_IMMEDIATE_RELATIVES_CLAUSE}}
+
+Please confirm Registration and Viewing.
+
+For the confirmation, Could you please reply ''Yes I confirm''
+
+Looking forward to your prompt confirmation.

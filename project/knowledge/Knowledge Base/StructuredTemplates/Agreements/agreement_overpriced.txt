@@ -1,0 +1,13 @@
+Subject: Selling Request – {{SELLER_NAME}} – {{PROPERTY_LOCATION}}
+
+Dear {{SELLER_NAME}},
+
+Thank you for considering us to market your property.
+
+However, after carefully evaluating your property with the expertise of our team, in our opinion, we regret to inform you that the asking price you provided is significantly above the current market value. As a result, we are unable to effectively market and introduce your property at this price.
+
+We understand that setting a realistic asking price is essential for a successful {{LISTING_TYPE}}, and we would be delighted to assist you in determining a price that reflects current market conditions.
+
+Should you wish to discuss further, please do not hesitate to contact us — we would be glad to explore with you the available options for marketing, adjusting the asking price, and ultimately achieving the {{LISTING_TYPE}} of your property.
+
+Thank you for your understanding, and we remain at your disposal.

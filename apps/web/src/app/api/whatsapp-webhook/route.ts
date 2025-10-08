@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { OpenAIService, WhatsAppService, CalculatorService } from '@sophiaai/services';
+import { OpenAIService, WhatsAppService, CalculatorService, OptimizedDocumentService } from '@sophiaai/services';
 
 /**
  * POST handler for Twilio WhatsApp webhook
@@ -246,28 +246,88 @@ async function processMessageAsync(
         content: msg.message_text,
       })) || [];
 
-    // Generate AI response using OpenAI service
+    // Check if this is a document generation request
+    const isDocumentRequest = detectDocumentRequest(messageText);
+
+    // Generate AI response using optimized service for documents, regular OpenAI for chat
     try {
-      console.log('DEBUG: Creating OpenAIService instance', {
+      console.log('DEBUG: Determining response service', {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
         historyCount: messageHistory.length,
+        isDocumentRequest,
       });
 
-      const openaiService = new OpenAIService();
+      let aiResponse;
 
-      console.log('DEBUG: Calling generateResponse', {
-        messageText,
-        agentId,
-        historyCount: messageHistory.length,
-      });
+      if (isDocumentRequest) {
+        // Use optimized document generation service
+        console.log('DEBUG: Using OptimizedDocumentService for document generation');
 
-      const aiResponse = await openaiService.generateResponse(messageText, {
-        agentId: agentId || 'guest',
-        messageHistory,
-      });
+        const optimizedService = new OptimizedDocumentService(
+          process.env.OPENAI_API_KEY!,
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-      console.log('DEBUG: generateResponse completed successfully');
+        const documentResponse = await optimizedService.generateDocument({
+          message: messageText,
+          agentId: agentId || undefined,
+          sessionId: messageId,
+          context: { platform: 'whatsapp', phoneNumber }
+        });
+
+        aiResponse = {
+          text: documentResponse.content,
+          tokensUsed: { total: documentResponse.tokensUsed },
+          responseTime: documentResponse.processingTime,
+          costEstimate: calculateCost(documentResponse.tokensUsed),
+          threadId: null,
+          assistantId: null,
+          runId: null,
+          toolCalls: []
+        };
+
+        console.log('DEBUG: Optimized document generation completed', {
+          templateId: documentResponse.templateId,
+          processingTime: documentResponse.processingTime,
+          tokensUsed: documentResponse.tokensUsed,
+          confidence: documentResponse.confidence
+        });
+
+        // Log document generation to database
+        if (agentId) {
+          try {
+            await supabase.from('optimized_document_generations').insert({
+              agent_id: agentId,
+              template_id: documentResponse.templateId,
+              template_name: documentResponse.templateName,
+              category: documentResponse.metadata.category,
+              processing_time_ms: documentResponse.processingTime,
+              tokens_used: documentResponse.tokensUsed,
+              confidence: documentResponse.confidence,
+              original_request: messageText,
+              generated_content: documentResponse.content,
+              session_id: messageId,
+              created_at: new Date().toISOString()
+            });
+          } catch (logError) {
+            console.error('Failed to log optimized document generation:', logError);
+          }
+        }
+
+      } else {
+        // Use regular OpenAI service for chat (faster than Assistant API)
+        console.log('DEBUG: Using OpenAIService for chat response');
+
+        const openaiService = new OpenAIService();
+        aiResponse = await openaiService.generateResponse(messageText, {
+          agentId: agentId || 'guest',
+          messageHistory,
+        });
+
+        console.log('DEBUG: OpenAI generateResponse completed successfully');
+      }
 
       console.log('AI response generated', {
         agentId,
@@ -549,4 +609,57 @@ Just ask me to calculate and I'll guide you through it!`;
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+}
+
+/**
+ * Detect if a message is requesting document generation
+ */
+function detectDocumentRequest(message: string): boolean {
+  const documentKeywords = [
+    'template', 'document', 'form', 'agreement', 'registration', 'email',
+    'generate', 'create', 'need', 'draft', 'prepare', 'write', 'make',
+    'seller', 'buyer', 'client', 'viewing', 'marketing', 'social media',
+    'cra', 'contract', 'listing', 'appointment', 'notice', 'letter'
+  ];
+
+  const normalizedMessage = message.toLowerCase().trim();
+
+  // Check for document keywords
+  const hasDocumentKeyword = documentKeywords.some(keyword =>
+    normalizedMessage.includes(keyword)
+  );
+
+  // Check for common document request patterns
+  const documentPatterns = [
+    /i need \w+ (template|form|document)/i,
+    /generate \w+ (email|agreement|notice)/i,
+    /create \w+ (document|template|form)/i,
+    /prepare \w+ (agreement|contract|letter)/i,
+    /draft \w+ (email|notice|document)/i,
+    /write \w+ (email|letter|template)/i,
+    /make \w+ (form|document|template)/i,
+    /seller registration/i,
+    /buyer registration/i,
+    /viewing form/i,
+    /marketing agreement/i,
+    /social media/i,
+    /good client request/i,
+    /phone call required/i
+  ];
+
+  const matchesPattern = documentPatterns.some(pattern =>
+    pattern.test(normalizedMessage)
+  );
+
+  return hasDocumentKeyword || matchesPattern;
+}
+
+/**
+ * Calculate estimated cost based on token usage
+ */
+function calculateCost(tokens: number): number {
+  // GPT-4o-mini pricing: $0.15 per 1M input tokens, $0.6 per 1M output tokens
+  const inputCost = (tokens * 0.6) / 1000000; // Assume 60% input tokens
+  const outputCost = (tokens * 0.4) / 1000000 * 0.6; // 40% output tokens
+  return inputCost + outputCost;
 }

@@ -17,10 +17,11 @@ import {
   TelegramAuthService,
   getMessageForwardService,
   MessageForwardService,
-  getAssistantService,
   getTelegramRateLimiter,
   createLogger,
   getMetricsService,
+  OptimizedDocumentService,
+  OpenAIService,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
 
@@ -309,7 +310,7 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       return;
     }
 
-    // Story 6.4: Generate AI responses with OpenAI
+    // Story 6.4: Generate AI responses with optimized service
 
     // Log incoming message
     await logConversation({
@@ -321,18 +322,92 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       telegramMessageId: message.message_id,
     });
 
-    // Generate AI response using OpenAI Assistant
-    const assistantService = getAssistantService();
+    // Check if this is a document generation request
+    const isDocumentRequest = detectDocumentRequest(text);
+
     const aiStartTime = Date.now();
+    let aiResponse: string;
+    let aiDuration: number;
 
-    const response = await assistantService.generateDocument(
-      telegramUser.agent_id,
-      text,
-      [] // TODO: Load conversation history for context
-    );
-    const aiResponse = response.text;
+    if (isDocumentRequest) {
+      // Use optimized document generation service
+      logger.info('Using OptimizedDocumentService for document generation', {
+        agentId: telegramUser.agent_id,
+        message: text.substring(0, 50) + '...'
+      });
 
-    const aiDuration = Date.now() - aiStartTime;
+      const optimizedService = new OptimizedDocumentService(
+        process.env.OPENAI_API_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const documentResponse = await optimizedService.generateDocument({
+        message: text,
+        agentId: telegramUser.agent_id,
+        sessionId: message.message_id.toString(),
+        context: { platform: 'telegram', chatId: chatId.toString() }
+      });
+
+      aiResponse = documentResponse.content;
+      aiDuration = Date.now() - aiStartTime;
+
+      logger.info('Optimized document generation completed', {
+        agentId: telegramUser.agent_id,
+        templateId: documentResponse.templateId,
+        processingTime: documentResponse.processingTime,
+        tokensUsed: documentResponse.tokensUsed,
+        confidence: documentResponse.confidence
+      });
+
+      // Log document generation to database
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        await supabase.from('optimized_document_generations').insert({
+          agent_id: telegramUser.agent_id,
+          template_id: documentResponse.templateId,
+          template_name: documentResponse.templateName,
+          category: documentResponse.metadata.category,
+          processing_time_ms: documentResponse.processingTime,
+          tokens_used: documentResponse.tokensUsed,
+          confidence: documentResponse.confidence,
+          original_request: text,
+          generated_content: documentResponse.content,
+          session_id: message.message_id.toString(),
+          created_at: new Date().toISOString()
+        });
+
+        logger.info('Document generation logged successfully', {
+          agentId: telegramUser.agent_id,
+          templateId: documentResponse.templateId
+        });
+      } catch (logError) {
+        logger.error('Failed to log optimized document generation', {
+          agentId: telegramUser.agent_id,
+          error: logError instanceof Error ? logError.message : 'Unknown error'
+        });
+      }
+
+    } else {
+      // Use regular OpenAI service for chat (faster than AssistantService)
+      logger.info('Using OpenAIService for chat response', {
+        agentId: telegramUser.agent_id,
+        message: text.substring(0, 50) + '...'
+      });
+
+      const openaiService = new OpenAIService();
+      const response = await openaiService.generateResponse(text, {
+        agentId: telegramUser.agent_id,
+        messageHistory: [] // TODO: Load conversation history for context
+      });
+
+      aiResponse = response.text;
+      aiDuration = Date.now() - aiStartTime;
+    }
     logger.trackPerformance('ai_response_generation', aiDuration, {
       userId: userId.toString(),
       agentId: telegramUser.agent_id,
@@ -387,6 +462,49 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
       });
     });
   }
+}
+
+/**
+ * Detect if a message is requesting document generation
+ */
+function detectDocumentRequest(message: string): boolean {
+  const documentKeywords = [
+    'template', 'document', 'form', 'agreement', 'registration', 'email',
+    'generate', 'create', 'need', 'draft', 'prepare', 'write', 'make',
+    'seller', 'buyer', 'client', 'viewing', 'marketing', 'social media',
+    'cra', 'contract', 'listing', 'appointment', 'notice', 'letter'
+  ];
+
+  const normalizedMessage = message.toLowerCase().trim();
+
+  // Check for document keywords
+  const hasDocumentKeyword = documentKeywords.some(keyword =>
+    normalizedMessage.includes(keyword)
+  );
+
+  // Check for common document request patterns
+  const documentPatterns = [
+    /i need \w+ (template|form|document)/i,
+    /generate \w+ (email|agreement|notice)/i,
+    /create \w+ (document|template|form)/i,
+    /prepare \w+ (agreement|contract|letter)/i,
+    /draft \w+ (email|notice|document)/i,
+    /write \w+ (email|letter|template)/i,
+    /make \w+ (form|document|template)/i,
+    /seller registration/i,
+    /buyer registration/i,
+    /viewing form/i,
+    /marketing agreement/i,
+    /social media/i,
+    /good client request/i,
+    /phone call required/i
+  ];
+
+  const matchesPattern = documentPatterns.some(pattern =>
+    pattern.test(normalizedMessage)
+  );
+
+  return hasDocumentKeyword || matchesPattern;
 }
 
 /**

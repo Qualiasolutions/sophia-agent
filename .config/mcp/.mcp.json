@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "supa": {
+      "command": "./node_modules/.bin/supergateway",
+      "args": [
+        "--streamableHttp",
+        "https://mcp.supabase.com/mcp",
+        "--oauth2Bearer",
+        "sbp_f2df55642a9f762d66a3d5a4507163e5a1c46fd5"
+      ]
+    },
+    "s": {
+      "command": "./node_modules/.bin/supergateway",
+      "args": [
+        "--streamableHttp",
+        "https://mcp.supabase.com/mcp",
+        "--oauth2Bearer",
+        "sbp_81627daad0af3c1bc0351200c2dc283aa2c7ed0e"
+      ]
+    }
+  }
+}

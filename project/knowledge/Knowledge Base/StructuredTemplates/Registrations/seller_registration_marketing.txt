@@ -1,0 +1,20 @@
+Subject: Registration – {{CLIENT_INFORMATION}} – {{PROPERTY_REFERENCE}}
+
+Dear {{SELLER_NAME}}, (Seller)
+
+Following our communication,
+
+With this email, we kindly ask for your approval for the below registration and viewing.
+
+*Client Information:* {{CLIENT_INFORMATION}}
+*Property Introduced:* {{PROPERTY_INTRODUCED}}
+*Property Link:* {{PROPERTY_LINK}}
+*Viewing arranged for:* {{VIEWING_DATETIME}}
+*Fees:* {{AGENCY_FEE_PERCENT}} + VAT based on the final agreed sold price. If sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD.
+
+{{OPTIONAL_NO_DIRECT_CONTACT_CLAUSE}}
+{{OPTIONAL_IMMEDIATE_RELATIVES_CLAUSE}}
+
+If you agree with the above terms and conditions, could you please reply to this email stating: ''Yes I confirm''
+
+Please kindly remember to add also the copy of the title deed as well where possible when you send the email of the marketing agreement and registration together.

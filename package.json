@@ -17,6 +17,7 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "supergateway": "^3.4.0",
     "turbo": "^2.3.3"
   }
 }

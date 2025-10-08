@@ -1,0 +1,16 @@
+Subject: Viewing Form Confirmation – Zyprus ID: {{ZYPRUS_ID}}
+
+Dear {{CLIENT_NAME}},
+
+Thank you for your email.
+
+Please find hereby the requested details of the subject property for your initial review.
+
+Property Link: {{PROPERTY_LINK}}
+Google Map Location:
+{{GOOGLE_MAP_LINK}}
+Registration Details: {{REGISTRATION_DETAILS}}
+
+Should you require any additional information regarding the physical or legal characteristics of the land, or wish to submit an offer, please feel free to let us know.
+
+Looking forward to hearing your feedback.
