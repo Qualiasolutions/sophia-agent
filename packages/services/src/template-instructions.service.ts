@@ -137,7 +137,59 @@ export class TemplateInstructionService {
    * Create registration template instructions (11 new templates)
    */
   private createRegistrationInstructions(): void {
-    // 1. Standard Registration to Sellers
+    // 1. Standard Registration to Sellers (new template_id matching database)
+    this.microInstructionsCache.set('seller_registration_standard', {
+      templateId: 'seller_registration_standard',
+      category: 'registration',
+      instructions: `You are generating a STANDARD SELLER REGISTRATION.
+CRITICAL FLOW - Follow these EXACT steps:
+Step 1: Ask "What type of registration do you need? (1) Seller/Owner Registration, (2) Developer Registration, or (3) Bank Registration)"
+Step 2: If they say "Seller/Owner Registration", ask "Which seller registration do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?"
+Step 3: ONLY after both steps are clear, collect required fields for standard registration:
+1. **Seller Name:** Full legal name of the seller
+2. **Client Information:** Buyer name(s) - ask if single or multiple
+3. **Property Introduced:** Property description or reg number
+4. **Viewing Arranged for:** Date and time
+DOCUMENT FORMAT:
+Dear [SELLER_NAME], (Seller)
+
+This email is to provide you with a registration.
+
+Client Information: [BUYER_NAMES]
+
+Property Introduced: [PROPERTY_DESCRIPTION]
+
+Viewing Arranged for: [VIEWING_DATETIME]
+
+Please confirm Registration and Viewing.
+
+For the confirmation, Could you please reply 'Yes I confirm'
+
+Looking forward to your prompt confirmation.
+
+IMPORTANT RULES:
+- Send subject line in separate message
+- Use exact template wording
+- No confirmation step after collecting all fields
+- Generate immediately when all info is collected`,
+      requiredFields: ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
+      optionalFields: [],
+      validationRules: [
+        { field: 'seller_name', rule: 'Must include seller full name' },
+        { field: 'buyer_names', rule: 'Must include buyer name(s)' },
+        { field: 'viewing_datetime', rule: 'Must include date and time' }
+      ],
+      outputFormat: {
+        boldLabels: true,
+        maskPhoneNumbers: false,
+        includeSubjectLine: true,
+        appendReminders: false,
+        noConfirmation: true
+      },
+      estimatedTokens: 30,
+      contextExamples: []
+    });
+
     this.microInstructionsCache.set('standard_registration_to_sellers', {
       templateId: 'standard_registration_to_sellers',
       category: 'registration',
@@ -814,28 +866,32 @@ Output format:
       registration: {
         templateId: 'registration_general',
         category: 'registration',
-        instructions: `You are generating a registration document.
+        instructions: `You are Sophia, the zyprus.com AI assistant helping with registration documents.
+CRITICAL FLOW - Follow these EXACT steps:
+Step 1: When user says "registration" or similar, ALWAYS ask first:
+"What type of registration do you need?
+1. **Seller/Owner Registration** (property owners)
+2. **Developer Registration** (new constructions/developments)
+3. **Bank Registration** (bank-owned properties/land)"
 
-IMPORTANT: Follow TWO-STEP clarification process:
+Step 2: Based on their answer:
+- If Seller/Owner: Ask "Which seller registration do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?"
+- If Developer: Ask "Is a viewing arranged? (Yes/No)"
+- If Bank: Ask "Is it for a property or land registration?"
 
-Step 1: Ask "Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?"
-
-Step 2: If they say "Seller(s)", ask "Which seller registration do you need: (1) Standard Registration, (2) Registration and Marketing Agreement, (3) Very Advanced Registration, or (4) Rental Registration?"
-
-ONLY AFTER both steps are complete, start collecting required fields for the specific template.
-
-Use exact template wording, bold labels with **asterisks**, mask phone numbers with XX.`,
-        requiredFields: ['REGISTRATION_TYPE', 'SELLER_SUBTYPE'],
+Step 3: ONLY after determining the exact template, start collecting required fields.
+Use exact template wording, bold labels with **asterisks**, send subject line separately.`,
+        requiredFields: ['registration_category', 'registration_subtype'],
         optionalFields: [],
         validationRules: [],
         outputFormat: {
           boldLabels: true,
-          maskPhoneNumbers: true,
+          maskPhoneNumbers: false,
           includeSubjectLine: true,
           appendReminders: false,
           noConfirmation: true
         },
-        estimatedTokens: 25,
+        estimatedTokens: 30,
         contextExamples: []
       },
 

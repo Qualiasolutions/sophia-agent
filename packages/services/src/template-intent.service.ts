@@ -41,18 +41,18 @@ export class TemplateIntentClassifier {
         /\b(client\s+registration|client\s+registeration|buyer\s+registration|tenant\s+registration)\b/i
       ],
       templateMappings: {
-        'seller': ['standard_registration_to_sellers', 'registration_and_marketing_agreement', 'very_advanced_registration', 'standard_registration_for_rentals_to_landlords'],
-        'developer': ['developer_registration_viewing_arranged', 'developer_registration_no_viewing_arranged'],
-        'bank': ['property_registration_banks', 'land_registration_banks']
+        'seller': ['seller_registration_standard'],
+        'developer': [], // Add these templates to database later
+        'bank': [] // Add these templates to database later
       },
       requiredFields: {
-        'seller': ['client_name', 'property_introduced', 'viewing_datetime', 'property_link'],
+        'seller': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
         'developer': ['client_name', 'viewing_datetime', 'agency_fee'],
         'bank': ['client_name', 'client_phone', 'property_link_or_description', 'agent_phone']
       },
       suggestedQuestions: {
-        'seller': ['Which type of registration do you need: (1) Seller(s), (2) Developer, or (3) Bank?'],
-        'seller_subtype': ['Which seller registration do you need: (1) Standard Registration, (2) Registration and Marketing Agreement, (3) Very Advanced Registration, or (4) Rental Registration?'],
+        'seller': ['What type of registration do you need? (1) Seller/Owner Registration, (2) Developer Registration, or (3) Bank Registration)'],
+        'seller_subtype': ['For seller registration, which type do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?'],
         'developer': ['What is the client name?', 'Is a viewing arranged?'],
         'bank': ['What is the client full name?', 'What is the property link or description?']
       }
@@ -276,13 +276,14 @@ export class TemplateIntentClassifier {
     const templateMetadata: Record<string, any> = {
       // Registration templates
       'seller_registration_standard': { category: 'registration', estimatedTokens: 150, averageResponseTime: 2000 },
-      'seller_registration_marketing': { category: 'registration', estimatedTokens: 200, averageResponseTime: 2500 },
-      'seller_registration_rental': { category: 'registration', estimatedTokens: 180, averageResponseTime: 2200 },
-      'seller_registration_advanced': { category: 'registration', estimatedTokens: 250, averageResponseTime: 3000 },
+      'standard_registration_to_sellers': { category: 'registration', estimatedTokens: 200, averageResponseTime: 2500 },
+      'registration_and_marketing_agreement': { category: 'registration', estimatedTokens: 250, averageResponseTime: 3000 },
+      'very_advanced_registration': { category: 'registration', estimatedTokens: 300, averageResponseTime: 3500 },
+      'standard_registration_for_rentals_to_landlords': { category: 'registration', estimatedTokens: 180, averageResponseTime: 2200 },
       'developer_registration_viewing_arranged': { category: 'registration', estimatedTokens: 160, averageResponseTime: 2100 },
-      'developer_registration_no_viewing': { category: 'registration', estimatedTokens: 140, averageResponseTime: 1800 },
-      'bank_registration_property': { category: 'registration', estimatedTokens: 130, averageResponseTime: 1700 },
-      'bank_registration_land': { category: 'registration', estimatedTokens: 135, averageResponseTime: 1800 },
+      'developer_registration_no_viewing_arranged': { category: 'registration', estimatedTokens: 140, averageResponseTime: 1800 },
+      'property_registration_banks': { category: 'registration', estimatedTokens: 130, averageResponseTime: 1700 },
+      'land_registration_banks': { category: 'registration', estimatedTokens: 135, averageResponseTime: 1800 },
 
       // Email templates
       'email_good_client_request': { category: 'email', estimatedTokens: 120, averageResponseTime: 1500 },
