@@ -6,7 +6,7 @@
  */
 
 import { OpenAI } from 'openai';
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 import { SemanticIntentService, SemanticIntentResult } from './semantic-intent.service';
 import { TemplateAnalyticsService } from './template-analytics.service';
 import { TemplateEnhancementService } from './template-enhancement.service';
@@ -57,14 +57,21 @@ export class EnhancedDocumentService {
   private semanticService: SemanticIntentService;
   private analyticsService: TemplateAnalyticsService;
   private enhancementService: TemplateEnhancementService;
+  private supabase: any;
   private cache = new Map<string, any>();
   private cacheTTL = 10 * 60 * 1000; // 10 minutes
 
-  constructor(openaiApiKey: string) {
+  constructor(openaiApiKey: string, supabaseUrl?: string, supabaseKey?: string) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
     this.semanticService = new SemanticIntentService(openaiApiKey);
     this.analyticsService = new TemplateAnalyticsService();
     this.enhancementService = new TemplateEnhancementService();
+
+    // Initialize Supabase client
+    this.supabase = createClient(
+      supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**

@@ -4,7 +4,7 @@
  * Handles migration and enhancement of templates to structured format
  */
 
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 import { OpenAI } from 'openai';
 
 interface EnhancedTemplate {
@@ -99,10 +99,17 @@ interface EnhancedTemplate {
 
 export class TemplateEnhancementService {
   private openai: OpenAI;
+  private supabase: any;
   private batchSize = 10;
 
   constructor(openaiApiKey: string) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
+
+    // Initialize Supabase client
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**

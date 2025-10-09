@@ -4,7 +4,7 @@
  * Handles migration from text-based templates to enhanced structured format
  */
 
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 export class TemplateMigrationService {
   /**

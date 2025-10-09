@@ -13,7 +13,7 @@ import type {
 } from '@sophiaai/shared';
 import { EnhancedDocumentService, EnhancedDocumentGenerationRequest } from './document-enhanced.service';
 import { TemplateAnalyticsService } from './template-analytics.service';
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 const ENHANCED_SYSTEM_PROMPT = `You are Sophia, an AI assistant for zyprus.com, a real estate company in Cyprus. You help real estate agents with their daily tasks by providing quick, accurate assistance.
 
@@ -64,6 +64,7 @@ export class EnhancedOpenAIService {
   private documentService: EnhancedDocumentService;
   private analyticsService: TemplateAnalyticsService;
   private systemPrompt: string;
+  private supabase: any;
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -87,6 +88,12 @@ export class EnhancedOpenAIService {
     this.systemPrompt = ENHANCED_SYSTEM_PROMPT;
     this.documentService = new EnhancedDocumentService(apiKey);
     this.analyticsService = new TemplateAnalyticsService();
+
+    // Initialize Supabase client
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**
