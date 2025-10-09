@@ -151,6 +151,7 @@ sophiaai/
 - `document_request_sessions`: Multi-turn document generation sessions
 - `calculator_history`: Calculation usage tracking
 - `system_config`: Application configuration
+- `template_cache`: Template caching service for optimized document generation (created 2025-10-09)
 
 **MCP Access**: Full Supabase MCP integration available for database operations.
 
@@ -279,15 +280,22 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 **Registration Document Templates:**
 The system uses optimized instruction files located in `project/knowledge/Knowledge Base/Templates/Registeration Forms/reg_final/`
 
-### Registration Flow (Updated)
-Sophia now follows a structured 4-step flow for all registration requests:
+### Registration Flow (Updated 2025-10-09)
+Sophia now follows a structured 3-step flow for all registration requests:
 
-1. **Category Selection**: Ask if registration is for Seller/Owner, Developer, or Bank
-2. **Type Selection**: Within each category, ask for specific type (Standard, Marketing, Rental, etc.)
-3. **Multiple Sellers Check**: Confirm if registration is for multiple co-owners
-4. **Information Collection**: Collect ALL required fields before generating
+1. **Category Selection**: Ask "What type of registration do you need?"
+   - **Seller/Owner Registration** (property owners)
+   - **Developer Registration** (new constructions/developments)
+   - **Bank Registration** (bank-owned properties/land)
 
-### Available Registration Types
+2. **Type Selection**: Based on category, ask for specific type:
+   - **If Seller**: "Which seller registration do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?"
+   - **If Developer**: Ask if viewing is arranged
+   - **If Bank**: Ask if for property or land registration
+
+3. **Information Collection**: Collect ALL required fields before generating
+
+### Available Registration Types (11 total)
 - **Standard Seller Registration** (01) - Regular property registrations
 - **Seller with Marketing Agreement** (02) - Riskier cases with marketing terms
 - **Rental Property Registration** (03) - Landlord/tenant registrations
@@ -305,10 +313,16 @@ Sophia now follows a structured 4-step flow for all registration requests:
 - **Phone Number Masking**: Auto-masks middle digits (99 ** 67 32)
 - **Template Instructions**: Each registration type has detailed instruction file
 
-### Integration
-- Template definitions in `packages/shared/src/types/document-templates.ts`
-- Optimized document generation via `packages/services/src/document-optimized.service.ts`
-- Template caching for performance via `packages/services/src/template-cache.service.ts`
+### Technical Implementation
+- **Template Intent Classifier** (`template-intent.service.ts`): Classifies document requests and routes to appropriate templates
+- **Template Cache Service** (`template-cache.service.ts`): Caches templates for performance (uses `template_cache` table)
+- **Template Instruction Service** (`template-instructions.service.ts`): Provides micro-instructions for specific templates
+- **Optimized Document Service** (`document-optimized.service.ts`): Main service for document generation with intelligent pipeline
+
+### Important Notes
+- Template IDs in database must match those in intent classifier (e.g., `seller_registration_standard`)
+- When adding new templates, ensure both database and code are updated
+- Use MCP tools to check `template_cache` table if experiencing "trouble processing" errors
 
 ## Performance Requirements
 
@@ -382,10 +396,25 @@ vercel --prod           # Deploy to production
   - `apply-migrations.mjs` - Apply database migrations automatically
   - `check-agent.mjs` - Verify agent status in database
   - `check-logs.mjs` - View conversation logs
+  - `check-recent-logs.mjs` - View recent conversation logs
   - `setup-telegram-webhook.ts` - Configure Telegram webhook
+  - `test-webhook-local.mjs` - Test webhook locally
+  - `load-templates.mjs` - Load document templates into cache
 - `project/summaries/` - EPIC summaries and session reports
 - `project/deployment/` - Deployment documentation
 - `.config/mcp/` - MCP server configurations
+
+### Document Services Architecture
+The document generation system uses a layered approach:
+1. **Intent Classification** (`template-intent.service.ts`): Identifies document type from user message
+2. **Template Cache** (`template-cache.service.ts`): Stores and retrieves templates from database
+3. **Instruction Generation** (`template-instructions.service.ts`): Provides specific instructions for each template
+4. **Document Generation** (`document-optimized.service.ts`): Combines all services to generate documents
+
+**Common Issues & Solutions:**
+- If Sophia says "I'm having trouble processing your request", check if `template_cache` table exists
+- If wrong template is generated, verify template IDs match between database and intent classifier
+- Use Supabase MCP tools to inspect `template_cache` table contents
 
 ### Performance Optimization
 - `packages/services/src/document-optimized.service.ts` - Optimized document generation
