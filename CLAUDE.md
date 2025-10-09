@@ -66,6 +66,13 @@ sophiaai/
 │   ├── summaries/            # EPIC reports, session reports
 │   ├── deployment/           # Deployment documentation
 │   └── knowledge/            # Knowledge Base templates
+│       └── Templates/        # Document templates
+│           └── Registeration Forms/
+│               ├── reg_final/ # Optimized registration instructions (11 files)
+│               ├── Reg_ to Owners.docx
+│               ├── Reg_Banks.docx
+│               ├── Reg_Developers_.docx
+│               └── Registrations multiple sellers .docx
 ├── 📁 .config/               # Consolidated configuration
 │   ├── claude/               # Claude AI configuration
 │   ├── cursor/               # Cursor IDE rules
@@ -266,6 +273,42 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 **Testing**: Tests in `__tests__/` directories; must pass before marking stories complete
 
 **Imports**: Use workspace aliases `@sophiaai/services` and `@sophiaai/shared`
+
+## Document Generation & Registration System
+
+**Registration Document Templates:**
+The system uses optimized instruction files located in `project/knowledge/Knowledge Base/Templates/Registeration Forms/reg_final/`
+
+### Registration Flow (Updated)
+Sophia now follows a structured 4-step flow for all registration requests:
+
+1. **Category Selection**: Ask if registration is for Seller/Owner, Developer, or Bank
+2. **Type Selection**: Within each category, ask for specific type (Standard, Marketing, Rental, etc.)
+3. **Multiple Sellers Check**: Confirm if registration is for multiple co-owners
+4. **Information Collection**: Collect ALL required fields before generating
+
+### Available Registration Types
+- **Standard Seller Registration** (01) - Regular property registrations
+- **Seller with Marketing Agreement** (02) - Riskier cases with marketing terms
+- **Rental Property Registration** (03) - Landlord/tenant registrations
+- **Advanced Seller Registration** (04) - Multiple properties/special terms
+- **Bank Property Registration** (05) - Bank-owned properties (REMU, Gordian, etc.)
+- **Bank Land Registration** (06) - Bank-owned land (requires viewing form)
+- **Developer Registration - Viewing** (07) - With scheduled viewing
+- **Developer Registration - No Viewing** (08) - Without viewing scheduled
+- **Multiple Sellers Clause** (09) - Add-on for co-owners
+
+### Key Features
+- **Complete Information Collection**: Sophia won't generate until ALL required fields provided
+- **Exact Format Copy-Paste**: Documents match professional templates exactly
+- **Subject Line Separation**: Sent in separate message for clarity
+- **Phone Number Masking**: Auto-masks middle digits (99 ** 67 32)
+- **Template Instructions**: Each registration type has detailed instruction file
+
+### Integration
+- Template definitions in `packages/shared/src/types/document-templates.ts`
+- Optimized document generation via `packages/services/src/document-optimized.service.ts`
+- Template caching for performance via `packages/services/src/template-cache.service.ts`
 
 ## Performance Requirements
 
