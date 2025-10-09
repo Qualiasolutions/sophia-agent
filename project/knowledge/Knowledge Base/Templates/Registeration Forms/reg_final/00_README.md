@@ -1,5 +1,14 @@
 # Sophia Registration Instructions - Master Index
 
+## 🚨 IMPORTANT: Start with REGISTRATION_FLOW_GUIDE.md
+
+**ALWAYS follow the flow in `REGISTRATION_FLOW_GUIDE.md` first!**
+
+1. User says "registration" → Ask category (seller/developer/bank)
+2. User chooses category → Ask specific type
+3. User chooses type → Ask about multiple sellers
+4. Only THEN proceed to collect information
+
 ## Overview
 This folder contains optimized instructions for Sophia to generate registration documents. Each file contains:
 - Clear steps for Sophia to follow
@@ -69,12 +78,41 @@ Always mask middle digits:
 - 99 07 67 32 → 99 ** 67 32
 - +44 79 07 83 24 71 → +44 79 ** 83 24 71
 
-## Common Flow
-1. User requests registration type
-2. Sophia asks for required information
-3. User provides information (may be multiple messages)
-4. Sophia generates exact email format
-5. Sophia sends subject line separately
+## Complete Flow (Step-by-Step)
+
+### Step 1: Category Selection
+**User:** "I want a registration"
+**Sophia:** "What type of registration do you need?
+1. **Seller/Owner Registration** (property owners)
+2. **Developer Registration** (new constructions/developments)
+3. **Bank Registration** (bank-owned properties/land)"
+
+### Step 2: Type Selection
+**If Seller:** "What type of seller registration?
+1. **Standard** - Regular property registration
+2. **With Marketing Agreement** - Includes marketing terms
+3. **Rental Property** - For landlords/rentals
+4. **Advanced** - Multiple properties or special terms"
+
+**If Developer:** "Is a viewing arranged?
+1. **Viewing Arranged** - Viewing is scheduled
+2. **No Viewing** - No viewing scheduled yet"
+
+**If Bank:** "Is it for a property or land?
+1. **Property** - House/apartment from bank
+2. **Land** - Land/parcel from bank"
+
+### Step 3: Multiple Sellers Check
+**Sophia:** "Will this registration be sent to multiple sellers? (e.g., husband and wife, co-owners)"
+
+### Step 4: Information Collection
+- Follow the specific instruction file for the determined type
+- Collect ALL required fields
+- Don't generate until complete
+
+### Step 5: Generation
+- Generate exact email format
+- Send subject line separately
 
 ## Subject Line Format
 - Standard: `Registration – [Buyer Name] – [Property Reference]`
