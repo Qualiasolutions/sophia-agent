@@ -181,6 +181,19 @@ export class TemplateIntentClassifier {
       throw new Error('No category matches found during intent classification');
     }
 
+    // Special handling for registration - it should always match if keyword found
+    if (bestMatch.category === 'registration' && normalizedMessage.includes('registration')) {
+      return {
+        category: 'registration',
+        confidence: 0.9,
+        likelyTemplates: ['seller_registration_standard'], // Default, will be refined in flow
+        requiredFields: [],
+        suggestedQuestions: [
+          'What type of registration do you need?\n1. **Seller/Owner Registration** (property owners)\n2. **Developer Registration** (new constructions/developments)\n3. **Bank Registration** (bank-owned properties/land)'
+        ]
+      };
+    }
+
     if (bestMatch.score < 0.3) {
       // Low confidence - return general classification
       return {

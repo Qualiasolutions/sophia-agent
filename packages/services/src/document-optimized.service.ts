@@ -80,6 +80,31 @@ export class OptimizedDocumentService {
       const classification = this.intentClassifier.classifyIntent(request.message);
       metrics.intentClassification = Date.now() - classificationStartTime;
 
+      // Special handling for registration flow - don't generate immediately
+      if (classification.category === 'registration') {
+        metrics.totalTime = Date.now() - startTime;
+        metrics.tokensUsed = 0;
+
+        // Return the flow question instead of generating a document
+        const response: DocumentGenerationResponse = {
+          content: classification.suggestedQuestions[0] || 'What type of registration do you need?',
+          templateId: 'registration_flow',
+          templateName: 'Registration Flow',
+          processingTime: metrics.totalTime,
+          tokensUsed: 0,
+          confidence: classification.confidence,
+          metadata: {
+            category: 'registration',
+            requiredFields: [],
+            optionalFields: [],
+            suggestions: classification.suggestedQuestions
+          }
+        };
+
+        await this.logDocumentGeneration(request, response, metrics);
+        return response;
+      }
+
       // Step 2: Get optimized instructions (micro-instructions)
       const instructionStartTime = Date.now();
       const optimizedInstructions = this.instructionService.getOptimizedInstructions(classification);
