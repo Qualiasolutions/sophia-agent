@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 /**
  * Process Telegram update asynchronously
  */
-async function processUpdate(update: TelegramUpdate): Promise<void> {
+export async function processUpdate(update: TelegramUpdate): Promise<void> {
   const startTime = Date.now();
   const message = update.message;
 

@@ -62,6 +62,20 @@ export class TemplateOptimizer {
   private readonly templateBasePath = join(__dirname, '../../project/knowledge/Knowledge Base/StructuredTemplates');
 
   /**
+   * Map category to correct directory name
+   */
+  private getCategoryDirectory(category: string): string {
+    const categoryMap: Record<string, string> = {
+      'registration': 'Registrations',
+      'email': 'Emails',
+      'viewing': 'Viewing',
+      'agreement': 'Agreements',
+      'social': 'Social'
+    };
+    return categoryMap[category] || category;
+  }
+
+  /**
    * Load and parse a structured template file
    */
   async loadTemplate(templatePath: string, category: string, subcategory: string): Promise<OptimizedTemplate> {
@@ -72,7 +86,8 @@ export class TemplateOptimizer {
     }
 
     try {
-      const fullPath = join(this.templateBasePath, category, templatePath);
+      const categoryDir = this.getCategoryDirectory(category);
+      const fullPath = join(this.templateBasePath, categoryDir, templatePath);
       const content = await readFile(fullPath, 'utf-8');
 
       const optimized = this.parseTemplate(content, templatePath, category, subcategory);

@@ -6,6 +6,8 @@ export async function GET() {
   const openaiKey = process.env.OPENAI_API_KEY;
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramWebhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
   return NextResponse.json({
     hasSupabaseUrl: !!supabaseUrl,
@@ -13,9 +15,13 @@ export async function GET() {
     hasOpenAI: !!openaiKey,
     hasTwilioSid: !!twilioSid,
     hasTwilioToken: !!twilioToken,
+    hasTelegramToken: !!telegramToken,
+    hasTelegramWebhookSecret: !!telegramWebhookSecret,
     urlLength: supabaseUrl?.length || 0,
     keyLength: serviceKey?.length || 0,
     openaiKeyLength: openaiKey?.length || 0,
     twilioSidLength: twilioSid?.length || 0,
+    telegramTokenLength: telegramToken?.length || 0,
+    telegramWebhookSecretLength: telegramWebhookSecret?.length || 0,
   });
 }

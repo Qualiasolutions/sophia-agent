@@ -70,3 +70,4 @@ temp/
 # .claude/
 .vercel
 .turbo
+.env*.local

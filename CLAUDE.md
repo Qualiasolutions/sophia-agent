@@ -10,6 +10,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Framework**: Next.js 15.5.4 with App Router and Turbopack
 - **Methodology**: BMAD (Business Model Agile Development)
 - **Architecture**: Monorepo with npm workspaces and Turbo
+- **Package Manager**: npm 10.9.2
+- **Engines**: Node.js 20.0.0+, npm 10.0.0+
+- **Testing**: Vitest with jsdom environment, React Testing Library
+- **Database**: Supabase (PostgreSQL) with RLS enabled
+- **AI**: OpenAI GPT-4o-mini and Assistants API
 
 ## Development Commands
 
@@ -22,10 +27,10 @@ npm run test         # Run all tests with Vitest
 # From apps/web:
 npm run dev          # Start dev server with Turbopack on port 3000
 npm run build        # Build production bundle with Turbopack
+npm run start        # Start production server
+npm run lint         # Run ESLint
 npm run test         # Run tests once
 npm run test:watch   # Run tests in watch mode
-npm run lint         # Run ESLint
-npm run start        # Start production server
 
 # From packages/services:
 npm run test         # Run service tests
@@ -39,14 +44,12 @@ node dev/scripts/check-logs.mjs             # View conversation logs
 node dev/scripts/check-recent-logs.mjs      # View recent conversation logs
 node dev/scripts/test-webhook-local.mjs     # Test webhook locally
 node dev/scripts/performance-comparison.mjs # Performance benchmarking
+node dev/scripts/test-agent-lookup.mjs      # Test agent lookup functionality
+node dev/scripts/load-templates.mjs         # Load document templates
 
 # Single test commands:
 npm run test -- my-test-file.test.ts        # Run specific test file
 npm run test:watch -- my-test-file.test.ts  # Watch specific test file
-
-# System requirements:
-# - Node.js v20.0.0+
-# - npm v10.0.0+
 ```
 
 ## Directory Structure
@@ -111,9 +114,15 @@ sophiaai/
 
 **Multi-Channel Request Flow**:
 1. **WhatsApp**: Meta Cloud API webhook → `api/whatsapp-webhook/route.ts` → async processing → stores to `conversation_logs`
-2. **Telegram**: Bot API webhook → `api/telegram-webhook/route.ts` → OpenAI Assistants API → response via TelegramService
+   - Handles delivery status updates from Meta Cloud API
+   - Uses OpenAI service for chat responses and OptimizedDocumentService for document generation
+   - Includes calculator service integration for real estate calculations
+2. **Telegram**: Bot API webhook → `api/telegram-webhook/route.ts` → OpenAI Service → response via TelegramService
+   - User registration flow with email verification
+   - Message forwarding to WhatsApp capability
+   - Rate limiting and metrics tracking
 3. **Email**: Gmail API integration for document sending and client communication
-4. **AI Processing**: OpenAI Service or Assistants API for intelligent responses
+4. **AI Processing**: OpenAI Service or OptimizedDocumentService for intelligent responses
 
 ## Database (Supabase)
 
@@ -125,29 +134,32 @@ sophiaai/
 
 **Database Tables** (RLS enabled):
 - `agents`: Phone number, name, email, status (4 active agents)
-- `conversation_logs`: Inbound/outbound messages (249 records)
+- `conversation_logs`: Inbound/outbound messages with delivery status tracking
 - `document_generations`: PDF generation logs (41 records)
 - `optimized_document_generations`: Enhanced document generation with performance tracking
 - `admin_users`: Dashboard access with role-based permissions
 - `calculators`: Real estate calculation tools (3 active)
-- `telegram_users`: Telegram user mappings
-- `message_forwards`: Cross-platform message routing
-- `document_request_sessions`: Multi-turn document generation
+- `telegram_users`: Telegram user mappings with agent associations
+- `message_forwards`: Cross-platform message routing logs
+- `document_request_sessions`: Multi-turn document generation sessions
 - `calculator_history`: Calculation usage tracking
 - `system_config`: Application configuration
 
 **MCP Access**: Full Supabase MCP integration available for database operations.
 
+**Migration Pattern**: Sequential numbering (`001_`, `002_`, etc.) in `packages/database/supabase/migrations/`
+
 ## External Integrations
 
-- **WhatsApp**: Meta Cloud API (official Business API)
-- **Telegram**: Bot API with webhook support
+- **WhatsApp**: Meta Cloud API (official Business API) - NOT Twilio or Baileys
+- **Telegram**: Bot API with webhook support and user registration
 - **Email**: Gmail API with OAuth authentication
 - **AI**: OpenAI GPT-4o-mini and Assistants API
 - **Documents**: @react-pdf/renderer for PDF generation
 - **Caching**: Upstash Redis for rate limiting and sessions
 - **Database**: Supabase (PostgreSQL) with RLS
 - **Deployment**: Vercel with CI/CD pipeline
+- **Real Estate Data**: Zyprus API integration for property information
 
 ## Testing
 
@@ -159,18 +171,21 @@ sophiaai/
 
 **Test Commands:**
 ```bash
-# Run all tests
+# Run all tests (from root)
 npm run test
 
-# Run tests in watch mode
+# Run tests in watch mode (from root)
 npm run test:watch
+
+# Run tests for specific workspace
+cd apps/web && npm run test
+cd packages/services && npm run test
 
 # Run specific test file
 npm run test -- my-test-file.test.ts
 
-# Run tests for specific package
-cd packages/services && npm run test
-cd apps/web && npm run test
+# Run specific test file in watch mode
+npm run test:watch -- my-test-file.test.ts
 ```
 
 ## Required Environment Variables
@@ -192,6 +207,10 @@ WHATSAPP_BUSINESS_ACCOUNT_ID=xxxxx
 WHATSAPP_ACCESS_TOKEN=xxxxx
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=xxxxx
 WHATSAPP_PHONE_NUMBER_ID=xxxxx
+
+# Zyprus API (Real Estate Data)
+ZYPRUS_API_KEY=xxxxx
+ZYPRUS_API_BASE_URL=xxxxx
 
 # Telegram
 TELEGRAM_BOT_TOKEN=xxxxx:xxxxx
@@ -221,15 +240,32 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 4. **Database migrations**: All schema changes go in `packages/database/supabase/migrations/` with sequential numbering (`001_`, `002_`, etc.)
 5. **Use Supabase MCP**: For database operations, use connected MCP tools
 6. **Update docs**: Sync `docs/architecture/` (sharded) and `docs/prd/` (sharded) with implementation changes
-7. **Always load**: `docs/architecture/coding-standards.md`, `tech-stack.md`, `source-tree.md`
+7. **Always load**: `docs/architecture/17-coding-standards.md`, `3-tech-stack.md`, `12-unified-project-structure.md`
+
+**Development Environment**:
+- Use `node dev/scripts/apply-migrations.mjs` to apply database schema changes
+- Use `node dev/scripts/check-agent.mjs` to verify agent status in database
+- Use `node dev/scripts/setup-telegram-webhook.ts` to configure Telegram webhook
+- Test locally with `node dev/scripts/test-webhook-local.mjs`
 
 ## Coding Standards
 
-- **TypeScript**: Strict mode enabled with `noUncheckedIndexedAccess`
-- **Naming**: kebab-case files, PascalCase types/components, camelCase functions, UPPER_SNAKE_CASE constants, snake_case DB tables
-- **Commits**: Conventional Commits format (`feat(scope):`, `fix(scope):`, `docs(scope):`)
-- **Testing**: Tests in `__tests__/` directories; must pass before marking stories complete
-- **Imports**: Use workspace aliases `@sophiaai/services` and `@sophiaai/shared`
+**TypeScript Configuration**:
+- Strict mode enabled with `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`
+
+**Naming Conventions**:
+- Files: kebab-case (`conversation.service.ts`)
+- Interfaces/Types: PascalCase (`Agent`, `ConversationState`)
+- Functions: camelCase (`processMessage()`)
+- Constants: UPPER_SNAKE_CASE (`MAX_RETRIES`)
+- React Components: PascalCase (`AgentCard`)
+- Database Tables: snake_case (`agents`, `conversation_messages`)
+
+**Commits**: Conventional Commits format (`feat(agents):`, `fix(webhooks):`, `docs(architecture):`, `test(api):`)
+
+**Testing**: Tests in `__tests__/` directories; must pass before marking stories complete
+
+**Imports**: Use workspace aliases `@sophiaai/services` and `@sophiaai/shared`
 
 ## Performance Requirements
 
@@ -237,6 +273,30 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 - Concurrency: 100 agents, 20 concurrent conversations
 - Throughput: 300+ messages/hour
 - Uptime: 99% (8 AM - 8 PM Cyprus time)
+
+## Monitoring and Debugging
+
+**Performance Monitoring**:
+- `packages/services/src/performance-analytics.service.ts` - Performance tracking
+- `packages/services/src/document-optimized.service.ts` - Optimized document generation
+- `packages/services/src/template-cache.service.ts` - Template caching
+
+**Health Check Endpoint**: `/api/health` - Returns application status and environment info
+
+**Error Tracking**: Sentry integration for production error monitoring
+
+## Workspace Configuration
+
+**Turbo Configuration**:
+- Build pipeline uses `turbo.json` for workspace orchestration
+- Environment variables for builds are explicitly defined in turbo config
+- Persistent dev server for local development
+- No caching for tests to ensure fresh results
+
+**Package Dependencies**:
+- `apps/web` imports `@sophiaai/services` and `@sophiaai/shared` as workspace dependencies
+- Services are transpiled by Next.js at build time, no separate build step needed
+- All packages share TypeScript configuration through root-level setup
 
 ## Deployment
 

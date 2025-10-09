@@ -45,10 +45,10 @@ export class TemplateCacheService {
   private readonly maxCacheSize = 100;
   private readonly cacheTTL = 30 * 60 * 1000; // 30 minutes
   private readonly preloadTemplates = [
-    'seller_registration_standard',
-    'email_good_client_request',
-    'viewing_form_advanced',
-    'agreement_marketing_email'
+    { id: 'seller_registration_standard', category: 'registration' },
+    { id: 'email_good_client_request', category: 'email' },
+    { id: 'viewing_form_advanced', category: 'viewing' },
+    { id: 'agreement_marketing_email', category: 'agreement' }
   ];
 
   constructor(
@@ -67,9 +67,9 @@ export class TemplateCacheService {
    * Initialize cache with frequently used templates
    */
   private async initializeCache(): Promise<void> {
-    const preloadPromises = this.preloadTemplates.map(templateId =>
-      this.loadTemplate(templateId, 'registration', '').catch(err => {
-        console.warn(`Failed to preload template ${templateId}:`, err);
+    const preloadPromises = this.preloadTemplates.map(template =>
+      this.loadTemplate(template.id, template.category as DocumentCategory, '').catch(err => {
+        console.warn(`Failed to preload template ${template.id}:`, err);
         return null;
       })
     );
