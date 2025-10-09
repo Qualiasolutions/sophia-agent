@@ -1,547 +1,589 @@
 /**
  * Template Performance Analytics Service
  *
- * Tracks, analyzes, and optimizes template performance based on usage patterns
+ * Tracks usage patterns, performance metrics, and generates insights
+ * for continuous optimization of the template system
  */
 
 import { supabase } from '@sophiaai/database';
 
-export interface TemplateMetrics {
+export interface TemplateUsageMetrics {
   templateId: string;
   templateName: string;
   category: string;
   usageCount: number;
   successRate: number;
   averageResponseTime: number;
+  averageTokensUsed: number;
   lastUsed: Date;
-  tokensUsed: number;
-  costEstimate: number;
-  userSatisfaction: number;
-  errorRate: number;
-  cacheHitRate: number;
-  popularityScore: number;
+  totalRevenue?: number;
+  costPerGeneration?: number;
+  trendDirection: 'up' | 'down' | 'stable';
+  trendPercentage: number;
 }
 
-export interface AnalyticsFilter {
-  category?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-  agentId?: string;
-  limit?: number;
-  sortBy?: 'usage' | 'successRate' | 'responseTime' | 'popularity';
+export interface PerformanceInsight {
+  type: 'slow_template' | 'low_success' | 'high_usage' | 'unused' | 'expensive';
+  templateId: string;
+  templateName: string;
+  value: number;
+  benchmark: number;
+  recommendation: string;
+  priority: 'high' | 'medium' | 'low';
 }
 
-export interface PerformanceReport {
-  period: {
-    from: Date;
-    to: Date;
-  };
-  summary: {
-    totalGenerations: number;
-    averageResponseTime: number;
-    overallSuccessRate: number;
-    totalCost: number;
-    activeTemplates: number;
-  };
+export interface AnalyticsSummary {
+  period: string;
+  totalGenerations: number;
+  averageResponseTime: number;
+  successRate: number;
+  totalCost: number;
   topTemplates: Array<{
     templateId: string;
-    templateName: string;
-    usageCount: number;
+    name: string;
+    count: number;
     percentage: number;
   }>;
   categoryBreakdown: Array<{
     category: string;
     count: number;
     percentage: number;
-    avgResponseTime: number;
-    successRate: number;
   }>;
-  trends: {
-    dailyUsage: Array<{
-      date: string;
-      count: number;
-    }>;
-    responseTimeTrend: Array<{
-      date: string;
-      avgTime: number;
-    }>;
-  };
-  recommendations: Array<{
-    type: 'optimize' | 'promote' | 'deprecate' | 'investigate';
-    templateId: string;
-    message: string;
-    impact: 'high' | 'medium' | 'low';
-  }>;
+  insights: PerformanceInsight[];
 }
 
 export class TemplateAnalyticsService {
   /**
-   * Track template usage
+   * Record template usage
    */
-  async trackUsage(
+  async recordUsage(
     templateId: string,
     metrics: {
-      success: boolean;
       responseTime: number;
       tokensUsed: number;
-      agentId?: string;
-      sessionId?: string;
-      errorMessage?: string;
+      success: boolean;
+      confidence?: number;
       cacheHit?: boolean;
+      matchType?: 'semantic' | 'keyword' | 'hybrid';
     }
   ): Promise<void> {
-    // Update template analytics
-    await supabase.rpc('update_template_analytics', {
-      p_template_id: templateId,
-      p_usage_count_increment: 1,
-      p_success: metrics.success,
-      p_response_time: metrics.responseTime
-    });
-
-    // Log detailed generation record
-    await supabase
-      .from('optimized_document_generations')
-      .insert({
-        template_id: templateId,
-        template_name: await this.getTemplateName(templateId),
-        category: await this.getTemplateCategory(templateId),
-        processing_time_ms: metrics.responseTime,
-        tokens_used: metrics.tokensUsed,
-        confidence: 0.95, // Would come from intent classifier
-        original_request: '', // Would be passed in
-        generated_content: '', // Would be passed in
-        session_id: metrics.sessionId,
-        success: metrics.success,
-        error_message: metrics.errorMessage,
-        cache_hit: metrics.cacheHit || false,
-        cost_estimate: this.calculateCost(metrics.tokensUsed),
-        metadata: {
-          agent_id: metrics.agentId,
-          tracked_at: new Date().toISOString()
-        }
+    try {
+      // Update template analytics in enhanced_templates
+      await supabase.rpc('update_template_analytics', {
+        p_template_id: templateId,
+        p_usage_count_increment: 1,
+        p_success: metrics.success,
+        p_response_time: metrics.responseTime
       });
 
-    // Check if template needs optimization
-    await this.checkTemplateHealth(templateId);
+      // Log detailed usage in optimized_document_generations
+      await supabase
+        .from('optimized_document_generations')
+        .insert({
+          template_id: templateId,
+          processing_time_ms: metrics.responseTime,
+          tokens_used: metrics.tokensUsed,
+          success: metrics.success,
+          confidence: metrics.confidence || 0.95,
+          cache_hit: metrics.cacheHit || false,
+          metadata: {
+            match_type: metrics.matchType,
+            recorded_at: new Date().toISOString()
+          },
+          created_at: new Date()
+        });
+
+    } catch (error) {
+      console.error('Error recording template usage:', error);
+    }
   }
 
   /**
-   * Get comprehensive template metrics
+   * Get comprehensive analytics for a template
    */
-  async getTemplateMetrics(filter: AnalyticsFilter = {}): Promise<TemplateMetrics[]> {
-    let query = supabase
-      .from('enhanced_templates')
-      .select(`
-        template_id,
-        name,
-        category,
-        analytics,
-        metadata
-      `);
+  async getTemplateAnalytics(
+    templateId: string,
+    period: 'day' | 'week' | 'month' | 'year' = 'month'
+  ): Promise<TemplateUsageMetrics | null> {
+    try {
+      // Get base analytics from enhanced_templates
+      const { data: template, error: templateError } = await supabase
+        .from('enhanced_templates')
+        .select('template_id, name, category, analytics')
+        .eq('template_id', templateId)
+        .single();
 
-    // Apply filters
-    if (filter.category) {
-      query = query.eq('category', filter.category);
-    }
-
-    const { data, error } = await query;
-
-    if (error || !data) {
-      console.error('Error fetching template metrics:', error);
-      return [];
-    }
-
-    // Get additional metrics from optimized_document_generations
-    const templateIds = data.map(t => t.template_id);
-    const { data: generations } = await supabase
-      .from('optimized_document_generations')
-      .select('template_id, processing_time_ms, tokens_used, success, cache_hit')
-      .in('template_id', templateIds);
-
-    // Group generations by template
-    const generationStats = new Map<string, any>();
-    generations?.forEach(gen => {
-      if (!generationStats.has(gen.template_id)) {
-        generationStats.set(gen.template_id, {
-          totalResponseTime: 0,
-          totalTokens: 0,
-          successCount: 0,
-          totalCount: 0,
-          cacheHits: 0
-        });
+      if (templateError || !template) {
+        return null;
       }
-      const stats = generationStats.get(gen.template_id);
-      stats.totalResponseTime += gen.processing_time_ms;
-      stats.totalTokens += gen.tokens_used;
-      if (gen.success) stats.successCount++;
-      stats.totalCount++;
-      if (gen.cache_hit) stats.cacheHits++;
-    });
 
-    // Combine metrics
-    const metrics: TemplateMetrics[] = data.map(template => {
-      const stats = generationStats.get(template.template_id) || {
-        totalResponseTime: 0,
-        totalTokens: 0,
-        successCount: 0,
-        totalCount: 0,
-        cacheHits: 0
-      };
+      // Calculate period-specific metrics
+      const { data: usage } = await supabase
+        .from('optimized_document_generations')
+        .select('processing_time_ms, tokens_used, success, created_at')
+        .eq('template_id', templateId)
+        .gte('created_at', this.getPeriodStart(period))
+        .order('created_at', { ascending: false });
 
-      const analytics = template.analytics || {};
-      const metadata = template.metadata || {};
+      const recentUsage = usage || [];
+      const totalUsage = template.analytics?.usageCount || 0;
+
+      // Calculate trends
+      const { trendDirection, trendPercentage } = await this.calculateTrend(
+        templateId,
+        recentUsage.length,
+        period
+      );
 
       return {
         templateId: template.template_id,
         templateName: template.name,
         category: template.category,
-        usageCount: analytics.usageCount || 0,
-        successRate: stats.totalCount > 0 ? stats.successCount / stats.totalCount : 1.0,
-        averageResponseTime: stats.totalCount > 0 ? stats.totalResponseTime / stats.totalCount : 0,
-        lastUsed: analytics.lastUsed ? new Date(analytics.lastUsed) : new Date(0),
-        tokensUsed: stats.totalTokens,
-        costEstimate: this.calculateCost(stats.totalTokens),
-        userSatisfaction: this.calculateSatisfactionScore(template),
-        errorRate: stats.totalCount > 0 ? (stats.totalCount - stats.successCount) / stats.totalCount : 0,
-        cacheHitRate: stats.totalCount > 0 ? stats.cacheHits / stats.totalCount : 0,
-        popularityScore: this.calculatePopularityScore(analytics, metadata)
+        usageCount: totalUsage,
+        successRate: template.analytics?.successRate || 0,
+        averageResponseTime: template.analytics?.averageResponseTime || 0,
+        averageTokensUsed: this.calculateAverage(recentUsage, 'tokens_used'),
+        lastUsed: new Date(template.analytics?.lastUsed || Date.now()),
+        costPerGeneration: this.calculateCostPerGeneration(recentUsage),
+        trendDirection,
+        trendPercentage
       };
-    });
 
-    // Sort results
-    if (filter.sortBy) {
-      metrics.sort((a, b) => {
-        switch (filter.sortBy) {
-          case 'usage':
-            return b.usageCount - a.usageCount;
-          case 'successRate':
-            return b.successRate - a.successRate;
-          case 'responseTime':
-            return a.averageResponseTime - b.averageResponseTime;
-          case 'popularity':
-            return b.popularityScore - a.popularityScore;
-          default:
-            return 0;
-        }
-      });
+    } catch (error) {
+      console.error('Error getting template analytics:', error);
+      return null;
     }
-
-    return metrics.slice(0, filter.limit || 50);
   }
 
   /**
-   * Generate performance report
+   * Get analytics summary for dashboard
    */
-  async generatePerformanceReport(
-    dateFrom: Date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-    dateTo: Date = new Date()
-  ): Promise<PerformanceReport> {
-    // Get summary statistics
-    const { data: summary } = await supabase
-      .from('optimized_document_generations')
-      .select(`
-        processing_time_ms,
-        tokens_used,
-        success,
-        template_id
-      `)
-      .gte('created_at', dateFrom.toISOString())
-      .lte('created_at', dateTo.toISOString());
+  async getAnalyticsSummary(
+    period: 'day' | 'week' | 'month' | 'year' = 'month'
+  ): Promise<AnalyticsSummary> {
+    try {
+      const startDate = this.getPeriodStart(period);
 
-    const totalGenerations = summary?.length || 0;
-    const totalResponseTime = summary?.reduce((sum, s) => sum + s.processing_time_ms, 0) || 0;
-    const successfulGenerations = summary?.filter(s => s.success).length || 0;
-    const totalTokens = summary?.reduce((sum, s) => sum + s.tokens_used, 0) || 0;
+      // Get total generations
+      const { count: totalGenerations } = await supabase
+        .from('optimized_document_generations')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startDate);
 
-    // Get top templates
-    const templateCounts = new Map<string, number>();
-    summary?.forEach(s => {
-      templateCounts.set(s.template_id, (templateCounts.get(s.template_id) || 0) + 1);
-    });
+      // Calculate average metrics
+      const { data: metrics } = await supabase
+        .from('optimized_document_generations')
+        .select('processing_time_ms, tokens_used, success')
+        .gte('created_at', startDate);
 
-    const topTemplates = Array.from(templateCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([templateId, count]) => ({
-        templateId,
-        templateName: 'Template Name', // Would fetch from enhanced_templates
-        usageCount: count,
-        percentage: (count / totalGenerations) * 100
-      }));
+      const avgResponseTime = metrics?.length > 0
+        ? metrics.reduce((sum, m) => sum + m.processing_time_ms, 0) / metrics.length
+        : 0;
 
-    // Get category breakdown
-    const { data: categoryData } = await supabase
+      const successRate = metrics?.length > 0
+        ? (metrics.filter(m => m.success).length / metrics.length) * 100
+        : 0;
+
+      const totalCost = this.calculateTotalCost(metrics || []);
+
+      // Get top templates
+      const { data: topTemplatesData } = await supabase
+        .from('optimized_document_generations')
+        .select('template_id')
+        .gte('created_at', startDate);
+
+      const templateCounts = this.aggregateTemplateCounts(topTemplatesData || []);
+      const topTemplates = templateCounts
+        .slice(0, 5)
+        .map(t => ({
+          ...t,
+          percentage: totalGenerations > 0 ? (t.count / totalGenerations) * 100 : 0
+        }));
+
+      // Get category breakdown
+      const { data: categoryData } = await supabase
+        .from('enhanced_templates')
+        .select('category')
+        .in('template_id', templateCounts.map(t => t.templateId));
+
+      const categoryBreakdown = this.aggregateCategoryBreakdown(
+        categoryData || [],
+        templateCounts,
+        totalGenerations
+      );
+
+      // Generate insights
+      const insights = await this.generateInsights(metrics || [], period);
+
+      return {
+        period,
+        totalGenerations: totalGenerations || 0,
+        averageResponseTime: Math.round(avgResponseTime),
+        successRate: Math.round(successRate * 100) / 100,
+        totalCost,
+        topTemplates,
+        categoryBreakdown,
+        insights
+      };
+
+    } catch (error) {
+      console.error('Error getting analytics summary:', error);
+      return {
+        period,
+        totalGenerations: 0,
+        averageResponseTime: 0,
+        successRate: 0,
+        totalCost: 0,
+        topTemplates: [],
+        categoryBreakdown: [],
+        insights: []
+      };
+    }
+  }
+
+  /**
+   * Get performance insights
+   */
+  async getPerformanceInsights(): Promise<PerformanceInsight[]> {
+    const insights: PerformanceInsight[] = [];
+
+    try {
+      // Get all enhanced templates
+      const { data: templates } = await supabase
+        .from('enhanced_templates')
+        .select('template_id, name, category, analytics, metadata');
+
+      if (!templates) return insights;
+
+      const avgResponseTime = 2000; // 2 seconds benchmark
+      const minSuccessRate = 0.90; // 90% benchmark
+      const minUsage = 5; // Minimum usage per month
+
+      // Check slow templates
+      templates.forEach(template => {
+        const responseTime = template.analytics?.averageResponseTime || 0;
+        const successRate = template.analytics?.successRate || 0;
+        const usageCount = template.analytics?.usageCount || 0;
+
+        // Slow templates
+        if (responseTime > avgResponseTime * 1.5) {
+          insights.push({
+            type: 'slow_template',
+            templateId: template.template_id,
+            templateName: template.name,
+            value: responseTime,
+            benchmark: avgResponseTime,
+            recommendation: `Template is ${Math.round((responseTime / avgResponseTime - 1) * 100)}% slower than average. Consider optimizing content or adding caching.`,
+            priority: responseTime > avgResponseTime * 2 ? 'high' : 'medium'
+          });
+        }
+
+        // Low success rate
+        if (successRate < minSuccessRate && usageCount > 10) {
+          insights.push({
+            type: 'low_success',
+            templateId: template.template_id,
+            templateName: template.name,
+            value: successRate * 100,
+            benchmark: minSuccessRate * 100,
+            recommendation: `Success rate is ${Math.round((minSuccessRate - successRate) * 100)}% below target. Review template instructions or field validation.`,
+            priority: successRate < 0.8 ? 'high' : 'medium'
+          });
+        }
+
+        // High usage templates (optimize these first)
+        if (usageCount > 50) {
+          insights.push({
+            type: 'high_usage',
+            templateId: template.template_id,
+            templateName: template.name,
+            value: usageCount,
+            benchmark: 20,
+            recommendation: `High usage template. Consider pre-caching and regular optimization to maintain performance.`,
+            priority: 'low'
+          });
+        }
+
+        // Unused templates
+        if (usageCount === 0 && template.metadata?.priority > 5) {
+          insights.push({
+            type: 'unused',
+            templateId: template.template_id,
+            templateName: template.name,
+            value: 0,
+            benchmark: minUsage,
+            recommendation: `Template not used in current period. Check if triggers are working or if template is still relevant.`,
+            priority: 'medium'
+          });
+        }
+      });
+
+      // Sort by priority
+      insights.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      });
+
+    } catch (error) {
+      console.error('Error generating insights:', error);
+    }
+
+    return insights;
+  }
+
+  /**
+   * Export analytics data
+   */
+  async exportAnalytics(
+    format: 'json' | 'csv' = 'json',
+    period: 'day' | 'week' | 'month' | 'year' = 'month'
+  ): Promise<string> {
+    const summary = await this.getAnalyticsSummary(period);
+    const templates = await this.getAllTemplateMetrics(period);
+
+    const exportData = {
+      summary,
+      templates,
+      insights: summary.insights,
+      exportedAt: new Date().toISOString()
+    };
+
+    if (format === 'csv') {
+      return this.convertToCSV(exportData);
+    }
+
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  /**
+   * Get metrics for all templates
+   */
+  private async getAllTemplateMetrics(
+    period: 'day' | 'week' | 'month' | 'year'
+  ): Promise<TemplateUsageMetrics[]> {
+    const { data: templates } = await supabase
       .from('enhanced_templates')
-      .select('category');
+      .select('template_id, name, category, analytics');
 
-    const categoryCounts = new Map<string, { count: number; responseTime: number; successRate: number }>();
-    categoryData?.forEach(cat => {
-      if (!categoryCounts.has(cat.category)) {
-        categoryCounts.set(cat.category, { count: 0, responseTime: 0, successRate: 0 });
+    if (!templates) return [];
+
+    const metrics: TemplateUsageMetrics[] = [];
+
+    for (const template of templates) {
+      const usageMetrics = await this.getTemplateAnalytics(template.template_id, period);
+      if (usageMetrics) {
+        metrics.push(usageMetrics);
       }
-    });
+    }
 
-    // Get daily usage trends
-    const dailyUsage = await this.getDailyUsage(dateFrom, dateTo);
+    return metrics.sort((a, b) => b.usageCount - a.usageCount);
+  }
 
-    // Get response time trends
-    const responseTimeTrend = await this.getResponseTimeTrend(dateFrom, dateTo);
+  /**
+   * Calculate trend direction and percentage
+   */
+  private async calculateTrend(
+    templateId: string,
+    currentUsage: number,
+    period: 'day' | 'week' | 'month' | 'year'
+  ): Promise<{ direction: 'up' | 'down' | 'stable'; percentage: number }> {
+    // Get previous period usage for comparison
+    const previousPeriodStart = this.getPeriodStart(period, 1);
+    const currentPeriodStart = this.getPeriodStart(period, 0);
 
-    // Generate recommendations
-    const recommendations = await this.generateRecommendations();
+    const { count: previousUsage } = await supabase
+      .from('optimized_document_generations')
+      .select('*', { count: 'exact', head: true })
+      .eq('template_id', templateId)
+      .gte('created_at', previousPeriodStart)
+      .lt('created_at', currentPeriodStart);
+
+    if (!previousUsage || previousUsage === 0) {
+      return { direction: 'stable', percentage: 0 };
+    }
+
+    const changePercentage = ((currentUsage - previousUsage) / previousUsage) * 100;
+
+    if (Math.abs(changePercentage) < 10) {
+      return { direction: 'stable', percentage: Math.abs(changePercentage) };
+    }
 
     return {
-      period: { from: dateFrom, to: dateTo },
-      summary: {
-        totalGenerations,
-        averageResponseTime: totalGenerations > 0 ? totalResponseTime / totalGenerations : 0,
-        overallSuccessRate: totalGenerations > 0 ? successfulGenerations / totalGenerations : 1,
-        totalCost: this.calculateCost(totalTokens),
-        activeTemplates: templateCounts.size
-      },
-      topTemplates,
-      categoryBreakdown: Array.from(categoryCounts.entries()).map(([category, stats]) => ({
-        category,
-        count: stats.count,
-        percentage: (stats.count / totalGenerations) * 100,
-        avgResponseTime: stats.responseTime,
-        successRate: stats.successRate
-      })),
-      trends: {
-        dailyUsage,
-        responseTimeTrend
-      },
-      recommendations
+      direction: changePercentage > 0 ? 'up' : 'down',
+      percentage: Math.abs(changePercentage)
     };
   }
 
   /**
-   * Get template suggestions for optimization
+   * Calculate average value from array
    */
-  async getOptimizationSuggestions(): Promise<Array<{
-    templateId: string;
-    type: 'improve' | 'cache' | 'deprecate' | 'promote';
-    reason: string;
-    potentialImprovement: string;
-  }>> {
-    const metrics = await this.getTemplateMetrics();
-    const suggestions = [];
+  private calculateAverage(data: any[], field: string): number {
+    if (!data || data.length === 0) return 0;
+    const sum = data.reduce((acc, item) => acc + (item[field] || 0), 0);
+    return Math.round(sum / data.length);
+  }
 
-    for (const metric of metrics) {
-      // Low success rate
-      if (metric.successRate < 0.8 && metric.usageCount > 10) {
-        suggestions.push({
-          templateId: metric.templateId,
-          type: 'improve',
-          reason: `Low success rate: ${(metric.successRate * 100).toFixed(1)}%`,
-          potentialImprovement: 'Review template content and instructions'
-        });
-      }
+  /**
+   * Calculate cost per generation
+   */
+  private calculateCostPerGeneration(usage: any[]): number {
+    const avgTokens = this.calculateAverage(usage, 'tokens_used');
+    // GPT-4o-mini: $0.00015 / 1K tokens (input) + $0.0006 / 1K tokens (output)
+    // Assume 60% input, 40% output
+    const costPerToken = 0.00015 * 0.6 + 0.0006 * 0.4;
+    return (avgTokens / 1000) * costPerToken;
+  }
 
-      // Slow response time
-      if (metric.averageResponseTime > 5000) {
-        suggestions.push({
-          templateId: metric.templateId,
-          type: 'cache',
-          reason: `Slow response time: ${metric.averageResponseTime}ms`,
-          potentialImprovement: 'Cache template or optimize content'
-        });
-      }
+  /**
+   * Calculate total cost
+   */
+  private calculateTotalCost(metrics: any[]): number {
+    const totalTokens = metrics.reduce((sum, m) => sum + (m.tokens_used || 0), 0);
+    // GPT-4o-mini pricing
+    const costPerToken = 0.00015 * 0.6 + 0.0006 * 0.4;
+    return (totalTokens / 1000) * costPerToken;
+  }
 
-      // High error rate
-      if (metric.errorRate > 0.2) {
-        suggestions.push({
-          templateId: metric.templateId,
-          type: 'improve',
-          reason: `High error rate: ${(metric.errorRate * 100).toFixed(1)}%`,
-          potentialImprovement: 'Fix errors in template logic'
-        });
-      }
+  /**
+   * Get period start date
+   */
+  private getPeriodStart(period: 'day' | 'week' | 'month' | 'year', periodsBack = 0): Date {
+    const now = new Date();
+    const start = new Date(now);
 
-      // Low usage for good template
-      if (metric.usageCount < 5 && metric.successRate > 0.9 && metric.averageResponseTime < 2000) {
-        suggestions.push({
-          templateId: metric.templateId,
-          type: 'promote',
-          reason: 'Good performance but low usage',
-          potentialImprovement: 'Improve triggers and keywords'
-        });
-      }
-
-      // Deprecated template
-      if (metric.usageCount === 0 && metric.lastUsed < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) {
-        suggestions.push({
-          templateId: metric.templateId,
-          type: 'deprecate',
-          reason: 'Not used in 90 days',
-          potentialImprovement: 'Consider removing or updating'
-        });
-      }
+    switch (period) {
+      case 'day':
+        start.setDate(now.getDate() - periodsBack);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        start.setDate(now.getDate() - (periodsBack * 7));
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        start.setMonth(now.getMonth() - periodsBack);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'year':
+        start.setFullYear(now.getFullYear() - periodsBack);
+        start.setMonth(0, 1);
+        start.setHours(0, 0, 0, 0);
+        break;
     }
 
-    return suggestions;
+    return start;
   }
 
   /**
-   * Check template health and create alerts
+   * Aggregate template counts
    */
-  private async checkTemplateHealth(templateId: string): Promise<void> {
-    const metrics = await this.getTemplateMetrics({ limit: 1 });
-    const template = metrics.find(m => m.templateId === templateId);
+  private aggregateTemplateCounts(data: Array<{ template_id: string }>): Array<{ templateId: string; count: number }> {
+    const counts: Record<string, number> = {};
 
-    if (!template) return;
-
-    // Check for critical issues
-    if (template.successRate < 0.5 && template.usageCount > 5) {
-      await this.createAlert({
-        type: 'critical',
-        templateId,
-        message: `Critical: Template success rate dropped to ${(template.successRate * 100).toFixed(1)}%`
-      });
-    }
-
-    if (template.averageResponseTime > 10000) {
-      await this.createAlert({
-        type: 'warning',
-        templateId,
-        message: `Warning: Template response time is ${template.averageResponseTime}ms`
-      });
-    }
-  }
-
-  /**
-   * Create alert for template issues
-   */
-  private async createAlert(alert: {
-    type: 'critical' | 'warning' | 'info';
-    templateId: string;
-    message: string;
-  }): Promise<void> {
-    // Would store alerts in a separate table
-    console.log(`ALERT [${alert.type.toUpperCase()}] ${alert.templateId}: ${alert.message}`);
-  }
-
-  /**
-   * Calculate cost based on token usage
-   */
-  private calculateCost(tokens: number): number {
-    // GPT-4o-mini pricing: $0.15 per 1M input tokens, $0.6 per 1M output tokens
-    // Assuming 50/50 split for estimation
-    return (tokens * 0.000375) / 1000000; // in USD
-  }
-
-  /**
-   * Calculate satisfaction score
-   */
-  private calculateSatisfactionScore(template: any): number {
-    // Would be based on user feedback
-    return 0.85; // Placeholder
-  }
-
-  /**
-   * Calculate popularity score
-   */
-  private calculatePopularityScore(analytics: any, metadata: any): number {
-    const usageCount = analytics.usageCount || 0;
-    const successRate = analytics.successRate || 1;
-    const priority = metadata.priority || 5;
-
-    // Weighted score
-    return (usageCount * 0.6 + successRate * 30 + priority * 10) / 100;
-  }
-
-  /**
-   * Get daily usage data
-   */
-  private async getDailyUsage(dateFrom: Date, dateTo: Date): Promise<Array<{ date: string; count: number }>> {
-    const { data } = await supabase
-      .from('optimized_document_generations')
-      .select('created_at')
-      .gte('created_at', dateFrom.toISOString())
-      .lte('created_at', dateTo.toISOString());
-
-    const dailyCounts = new Map<string, number>();
-    data?.forEach(d => {
-      const date = d.created_at.split('T')[0];
-      dailyCounts.set(date, (dailyCounts.get(date) || 0) + 1);
+    data.forEach(item => {
+      counts[item.template_id] = (counts[item.template_id] || 0) + 1;
     });
 
-    return Array.from(dailyCounts.entries())
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    return Object.entries(counts)
+      .map(([templateId, count]) => ({ templateId, count }))
+      .sort((a, b) => b.count - a.count);
   }
 
   /**
-   * Get response time trend
+   * Aggregate category breakdown
    */
-  private async getResponseTimeTrend(dateFrom: Date, dateTo: Date): Promise<Array<{ date: string; avgTime: number }>> {
-    const { data } = await supabase
-      .from('optimized_document_generations')
-      .select('created_at, processing_time_ms')
-      .gte('created_at', dateFrom.toISOString())
-      .lte('created_at', dateTo.toISOString());
+  private aggregateCategoryBreakdown(
+    categories: Array<{ template_id: string; category: string }>,
+    templateCounts: Array<{ templateId: string; count: number }>,
+    total: number
+  ): Array<{ category: string; count: number; percentage: number }> {
+    const categoryTotals: Record<string, number> = {};
 
-    const dailyTimes = new Map<string, { total: number; count: number }>();
-    data?.forEach(d => {
-      const date = d.created_at.split('T')[0];
-      if (!dailyTimes.has(date)) {
-        dailyTimes.set(date, { total: 0, count: 0 });
-      }
-      const stats = dailyTimes.get(date)!;
-      stats.total += d.processing_time_ms;
-      stats.count++;
+    templateCounts.forEach(tc => {
+      const category = categories.find(c => c.template_id === tc.template_id)?.category || 'unknown';
+      categoryTotals[category] = (categoryTotals[category] || 0) + tc.count;
     });
 
-    return Array.from(dailyTimes.entries())
-      .map(([date, stats]) => ({
-        date,
-        avgTime: stats.total / stats.count
+    return Object.entries(categoryTotals)
+      .map(([category, count]) => ({
+        category,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => b.count - a.count);
   }
 
   /**
-   * Generate optimization recommendations
+   * Generate performance insights
    */
-  private async generateRecommendations(): Promise<Array<{
-    type: 'optimize' | 'promote' | 'deprecate' | 'investigate';
-    templateId: string;
-    message: string;
-    impact: 'high' | 'medium' | 'low';
-  }>> {
-    const suggestions = await this.getOptimizationSuggestions();
+  private async generateInsights(
+    metrics: any[],
+    period: 'day' | 'week' | 'month' | 'year'
+  ): Promise<PerformanceInsight[]> {
+    const insights: PerformanceInsight[] = [];
 
-    return suggestions.map(s => ({
-      type: s.type as any,
-      templateId: s.templateId,
-      message: s.reason,
-      impact: s.type === 'improve' ? 'high' : s.type === 'promote' ? 'medium' : 'low'
-    }));
+    if (metrics.length === 0) return insights;
+
+    // Calculate benchmarks
+    const avgResponseTime = metrics.reduce((sum, m) => sum + m.processing_time_ms, 0) / metrics.length;
+    const successRate = metrics.filter(m => m.success).length / metrics.length;
+
+    // Response time insights
+    if (avgResponseTime > 3000) {
+      insights.push({
+        type: 'slow_template',
+        templateId: 'system',
+        templateName: 'Overall System',
+        value: avgResponseTime,
+        benchmark: 2000,
+        recommendation: `Average response time is ${Math.round((avgResponseTime / 2000 - 1) * 100)}% above target. Consider optimizing slow templates.`,
+        priority: 'medium'
+      });
+    }
+
+    // Success rate insights
+    if (successRate < 0.95) {
+      insights.push({
+        type: 'low_success',
+        templateId: 'system',
+        templateName: 'Overall System',
+        value: successRate * 100,
+        benchmark: 95,
+        recommendation: `Success rate is ${Math.round((0.95 - successRate) * 100)}% below target. Review error logs for common failures.`,
+        priority: 'high'
+      });
+    }
+
+    return insights;
   }
 
   /**
-   * Get template name
+   * Convert data to CSV format
    */
-  private async getTemplateName(templateId: string): Promise<string> {
-    const { data } = await supabase
-      .from('enhanced_templates')
-      .select('name')
-      .eq('template_id', templateId)
-      .single();
+  private convertToCSV(data: any): string {
+    const headers = [
+      'Template ID',
+      'Template Name',
+      'Category',
+      'Usage Count',
+      'Success Rate',
+      'Avg Response Time',
+      'Last Used',
+      'Trend'
+    ];
 
-    return data?.name || templateId;
-  }
+    const rows = data.templates.map((t: TemplateUsageMetrics) => [
+      t.templateId,
+      t.templateName,
+      t.category,
+      t.usageCount,
+      `${(t.successRate * 100).toFixed(1)}%`,
+      `${t.averageResponseTime}ms`,
+      t.lastUsed.toISOString().split('T')[0],
+      `${t.trendDirection} ${t.trendPercentage.toFixed(1)}%`
+    ]);
 
-  /**
-   * Get template category
-   */
-  private async getTemplateCategory(templateId: string): Promise<string> {
-    const { data } = await supabase
-      .from('enhanced_templates')
-      .select('category')
-      .eq('template_id', templateId)
-      .single();
-
-    return data?.category || 'unknown';
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
   }
 }
