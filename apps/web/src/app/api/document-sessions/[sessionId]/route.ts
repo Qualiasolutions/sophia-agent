@@ -12,15 +12,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-interface Params {
-  params: {
-    sessionId: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const { sessionId } = params;
+    const { sessionId } = await params;
 
     const { data: session, error } = await supabase
       .from('document_request_sessions')
@@ -56,9 +50,9 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function POST(request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const { sessionId } = params;
+    const { sessionId } = await params;
     const body = await request.json();
     const { message } = body;
 
@@ -146,9 +140,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const { sessionId } = params;
+    const { sessionId } = await params;
 
     const { error } = await supabase
       .from('document_request_sessions')
