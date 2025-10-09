@@ -21,6 +21,7 @@ import {
   createLogger,
   getMetricsService,
   OptimizedDocumentService,
+  EnhancedDocumentService,
   OpenAIService,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
@@ -330,30 +331,133 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
     let aiDuration: number;
 
     if (isDocumentRequest) {
-      // Use optimized document generation service
-      logger.info('Using OptimizedDocumentService for document generation', {
-        agentId: telegramUser.agent_id,
-        message: text.substring(0, 50) + '...'
-      });
-
-      const optimizedService = new OptimizedDocumentService(
-        process.env.OPENAI_API_KEY!,
+      // Check if this is a continuation of a flow session
+      const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
 
-      const documentResponse = await optimizedService.generateDocument({
-        message: text,
-        agentId: telegramUser.agent_id,
-        sessionId: message.message_id.toString(),
-        context: { platform: 'telegram', chatId: chatId.toString() }
-      });
+      const { data: existingSession } = await supabase
+        .from('document_request_sessions')
+        .select('*')
+        .eq('id', message.message_id.toString())
+        .single();
 
+      let documentResponse;
+
+      if (existingSession) {
+        // Continue existing flow with enhanced service
+        logger.info('Continuing flow session with EnhancedDocumentService', {
+          agentId: telegramUser.agent_id,
+          sessionId: message.message_id.toString()
+        });
+
+        const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
+
+        documentResponse = await enhancedService.generateDocument({
+          message: text,
+          agentId: telegramUser.agent_id,
+          sessionId: message.message_id.toString(),
+          context: { platform: 'telegram', chatId: chatId.toString() },
+          previousStep: existingSession.last_prompt,
+          collectedFields: existingSession.collected_fields
+        });
+
+        // Update session if it's a question response
+        if (documentResponse.type === 'question') {
+          await supabase
+            .from('document_request_sessions')
+            .update({
+              collected_fields: { ...existingSession.collected_fields, ...documentResponse.collectedFields },
+              missing_fields: documentResponse.missingFields || [],
+              last_prompt: documentResponse.nextStep || existingSession.last_prompt,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', message.message_id.toString());
+        }
+      } else {
+        // Check if message contains enhanced template patterns
+        const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(text);
+
+        if (hasFlowKeywords) {
+          // Use enhanced service for flows
+          logger.info('Using EnhancedDocumentService for flow-based generation', {
+            agentId: telegramUser.agent_id,
+            message: text.substring(0, 50) + '...'
+          });
+
+          const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
+
+          documentResponse = await enhancedService.generateDocument({
+            message: text,
+            agentId: telegramUser.agent_id,
+            sessionId: message.message_id.toString(),
+            context: { platform: 'telegram', chatId: chatId.toString() }
+          });
+
+          // Create session if it's a question
+          if (documentResponse.type === 'question' && documentResponse.templateId) {
+            await supabase
+              .from('document_request_sessions')
+              .insert({
+                id: message.message_id.toString(),
+                agent_id: telegramUser.agent_id,
+                document_template_id: documentResponse.templateId,
+                collected_fields: documentResponse.collectedFields || {},
+                missing_fields: documentResponse.missingFields || [],
+                status: 'collecting',
+                last_prompt: documentResponse.nextStep || 'category',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+          }
+        } else {
+          // Use legacy optimized service for simple documents
+          logger.info('Using OptimizedDocumentService for simple document generation', {
+            agentId: telegramUser.agent_id,
+            message: text.substring(0, 50) + '...'
+          });
+
+          const optimizedService = new OptimizedDocumentService(
+            process.env.OPENAI_API_KEY!,
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+
+          const legacyResponse = await optimizedService.generateDocument({
+            message: text,
+            agentId: telegramUser.agent_id,
+            sessionId: message.message_id.toString(),
+            context: { platform: 'telegram', chatId: chatId.toString() }
+          });
+
+          documentResponse = {
+            type: 'document',
+            content: legacyResponse.content,
+            templateId: legacyResponse.templateId,
+            templateName: legacyResponse.templateName,
+            processingTime: legacyResponse.processingTime,
+            tokensUsed: legacyResponse.tokensUsed,
+            confidence: legacyResponse.confidence
+          };
+        }
+      }
+
+      // Set AI response based on type
       aiResponse = documentResponse.content;
       aiDuration = Date.now() - aiStartTime;
 
-      logger.info('Optimized document generation completed', {
+      // Update session if document is complete
+      if (documentResponse.type === 'document' && existingSession) {
+        await supabase
+          .from('document_request_sessions')
+          .update({ status: 'complete', updated_at: new Date().toISOString() })
+          .eq('id', message.message_id.toString());
+      }
+
+      logger.info('Document generation completed', {
         agentId: telegramUser.agent_id,
+        type: documentResponse.type,
         templateId: documentResponse.templateId,
         processingTime: documentResponse.processingTime,
         tokensUsed: documentResponse.tokensUsed,
@@ -361,35 +465,39 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
       });
 
       // Log document generation to database
-      try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+      if (documentResponse.type === 'document') {
+        try {
+          await supabase.from('optimized_document_generations').insert({
+            agent_id: telegramUser.agent_id,
+            template_id: documentResponse.templateId,
+            template_name: documentResponse.templateName,
+            category: documentResponse.metadata?.category || 'document',
+            processing_time_ms: documentResponse.processingTime || 0,
+            tokens_used: documentResponse.tokensUsed || 0,
+            confidence: documentResponse.confidence || 0.95,
+            original_request: text,
+            generated_content: documentResponse.content,
+            session_id: message.message_id.toString(),
+            success: true,
+            metadata: {
+              response_type: documentResponse.type,
+              enhanced_service: !!existingSession || hasFlowKeywords,
+              platform: 'telegram',
+              flow_completed: existingSession ? true : false
+            },
+            created_at: new Date().toISOString()
+          });
 
-        await supabase.from('optimized_document_generations').insert({
-          agent_id: telegramUser.agent_id,
-          template_id: documentResponse.templateId,
-          template_name: documentResponse.templateName,
-          category: documentResponse.metadata.category,
-          processing_time_ms: documentResponse.processingTime,
-          tokens_used: documentResponse.tokensUsed,
-          confidence: documentResponse.confidence,
-          original_request: text,
-          generated_content: documentResponse.content,
-          session_id: message.message_id.toString(),
-          created_at: new Date().toISOString()
-        });
-
-        logger.info('Document generation logged successfully', {
-          agentId: telegramUser.agent_id,
-          templateId: documentResponse.templateId
-        });
-      } catch (logError) {
-        logger.error('Failed to log optimized document generation', {
-          agentId: telegramUser.agent_id,
-          error: logError instanceof Error ? logError.message : 'Unknown error'
-        });
+          logger.info('Document generation logged successfully', {
+            agentId: telegramUser.agent_id,
+            templateId: documentResponse.templateId
+          });
+        } catch (logError) {
+          logger.error('Failed to log optimized document generation', {
+            agentId: telegramUser.agent_id,
+            error: logError instanceof Error ? logError.message : 'Unknown error'
+          });
+        }
       }
 
     } else {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { OpenAIService, WhatsAppService, CalculatorService, OptimizedDocumentService } from '@sophiaai/services';
+import { OpenAIService, WhatsAppService, CalculatorService, OptimizedDocumentService, EnhancedDocumentService } from '@sophiaai/services';
 
 /**
  * POST handler for Twilio WhatsApp webhook
@@ -259,34 +259,138 @@ async function processMessageAsync(
       let aiResponse;
 
       if (isDocumentRequest) {
-        // Use optimized document generation service
-        console.log('DEBUG: Using OptimizedDocumentService for document generation');
+        // Check if this is a continuation of a flow session
+        const { data: existingSession } = await supabase
+          .from('document_request_sessions')
+          .select('*')
+          .eq('id', messageId)
+          .single();
 
-        const optimizedService = new OptimizedDocumentService(
-          process.env.OPENAI_API_KEY!,
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        let documentResponse;
 
-        const documentResponse = await optimizedService.generateDocument({
-          message: messageText,
-          agentId: agentId || undefined,
-          sessionId: messageId,
-          context: { platform: 'whatsapp', phoneNumber }
-        });
+        if (existingSession) {
+          // Continue existing flow with enhanced service
+          console.log('DEBUG: Continuing flow session with EnhancedDocumentService');
+          const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
 
-        aiResponse = {
-          text: documentResponse.content,
-          tokensUsed: { total: documentResponse.tokensUsed },
-          responseTime: documentResponse.processingTime,
-          costEstimate: calculateCost(documentResponse.tokensUsed),
-          threadId: null,
-          assistantId: null,
-          runId: null,
-          toolCalls: []
-        };
+          documentResponse = await enhancedService.generateDocument({
+            message: messageText,
+            agentId: agentId || undefined,
+            sessionId: messageId,
+            context: { platform: 'whatsapp', phoneNumber },
+            previousStep: existingSession.last_prompt,
+            collectedFields: existingSession.collected_fields
+          });
 
-        console.log('DEBUG: Optimized document generation completed', {
+          // If it's a question response, update the session
+          if (documentResponse.type === 'question') {
+            await supabase
+              .from('document_request_sessions')
+              .update({
+                collected_fields: { ...existingSession.collected_fields, ...documentResponse.collectedFields },
+                missing_fields: documentResponse.missingFields || [],
+                last_prompt: documentResponse.nextStep || existingSession.last_prompt,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', messageId);
+          }
+        } else {
+          // Check if message contains enhanced template patterns
+          const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(messageText);
+
+          if (hasFlowKeywords) {
+            // Use enhanced service for flows
+            console.log('DEBUG: Using EnhancedDocumentService for flow-based generation');
+            const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
+
+            documentResponse = await enhancedService.generateDocument({
+              message: messageText,
+              agentId: agentId || undefined,
+              sessionId: messageId,
+              context: { platform: 'whatsapp', phoneNumber }
+            });
+
+            // If it's a question, create a session
+            if (documentResponse.type === 'question' && documentResponse.templateId) {
+              await supabase
+                .from('document_request_sessions')
+                .insert({
+                  id: messageId,
+                  agent_id: agentId,
+                  document_template_id: documentResponse.templateId,
+                  collected_fields: documentResponse.collectedFields || {},
+                  missing_fields: documentResponse.missingFields || [],
+                  status: 'collecting',
+                  last_prompt: documentResponse.nextStep || 'category',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+            }
+          } else {
+            // Use legacy optimized service for simple documents
+            console.log('DEBUG: Using OptimizedDocumentService for simple document generation');
+            const optimizedService = new OptimizedDocumentService(
+              process.env.OPENAI_API_KEY!,
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+
+            const legacyResponse = await optimizedService.generateDocument({
+              message: messageText,
+              agentId: agentId || undefined,
+              sessionId: messageId,
+              context: { platform: 'whatsapp', phoneNumber }
+            });
+
+            documentResponse = {
+              type: 'document',
+              content: legacyResponse.content,
+              templateId: legacyResponse.templateId,
+              templateName: legacyResponse.templateName,
+              processingTime: legacyResponse.processingTime,
+              tokensUsed: legacyResponse.tokensUsed,
+              confidence: legacyResponse.confidence
+            };
+          }
+        }
+
+        // Handle different response types
+        if (documentResponse.type === 'question') {
+          // Send back the question, continue flow
+          aiResponse = {
+            text: documentResponse.content,
+            tokensUsed: { total: 0 },
+            responseTime: 100,
+            costEstimate: 0,
+            threadId: null,
+            assistantId: null,
+            runId: null,
+            toolCalls: []
+          };
+        } else {
+          // Document complete
+          aiResponse = {
+            text: documentResponse.content,
+            tokensUsed: { total: documentResponse.tokensUsed || 0 },
+            responseTime: documentResponse.processingTime || 0,
+            costEstimate: calculateCost(documentResponse.tokensUsed || 0),
+            threadId: null,
+            assistantId: null,
+            runId: null,
+            toolCalls: []
+          };
+
+          // Update session status to complete
+          if (existingSession) {
+            await supabase
+              .from('document_request_sessions')
+              .update({ status: 'complete', updated_at: new Date().toISOString() })
+              .eq('id', messageId);
+          }
+        }
+
+        console.log('DEBUG: Document generation completed', {
+          type: documentResponse.type,
           templateId: documentResponse.templateId,
           processingTime: documentResponse.processingTime,
           tokensUsed: documentResponse.tokensUsed,
@@ -294,19 +398,26 @@ async function processMessageAsync(
         });
 
         // Log document generation to database
-        if (agentId) {
+        if (agentId && documentResponse.type === 'document') {
           try {
             await supabase.from('optimized_document_generations').insert({
               agent_id: agentId,
               template_id: documentResponse.templateId,
               template_name: documentResponse.templateName,
-              category: documentResponse.metadata.category,
-              processing_time_ms: documentResponse.processingTime,
-              tokens_used: documentResponse.tokensUsed,
-              confidence: documentResponse.confidence,
+              category: documentResponse.metadata?.category || 'document',
+              processing_time_ms: documentResponse.processingTime || 0,
+              tokens_used: documentResponse.tokensUsed || 0,
+              confidence: documentResponse.confidence || 0.95,
               original_request: messageText,
               generated_content: documentResponse.content,
               session_id: messageId,
+              success: true,
+              metadata: {
+                response_type: documentResponse.type,
+                enhanced_service: !!existingSession || hasFlowKeywords,
+                platform: 'whatsapp',
+                flow_completed: existingSession ? true : false
+              },
               created_at: new Date().toISOString()
             });
           } catch (logError) {

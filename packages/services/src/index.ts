@@ -58,3 +58,8 @@ export {
 // Analytics and Enhanced Document Services
 export * from './template-analytics.service';
 export * from './enhanced-document.service';
+
+// Performance Analytics
+export * from './performance-analytics.service';
+export * from './flow-performance.service';
+export * from './openai-optimizer.service';

@@ -8,6 +8,8 @@
 import { OpenAI } from 'openai';
 import { SemanticIntentService } from './semantic-intent.service';
 import { TemplateAnalyticsService } from './template-analytics.service';
+import { FlowPerformanceService, FlowSessionEvent } from './flow-performance.service';
+import { OpenAIOptimizerService } from './openai-optimizer.service';
 import { supabase } from '@sophiaai/database';
 
 export interface EnhancedGenerationRequest {
@@ -54,12 +56,60 @@ export class EnhancedDocumentService {
   private openai: OpenAI;
   private intentService: SemanticIntentService;
   private analyticsService: TemplateAnalyticsService;
+  private flowPerformanceService: FlowPerformanceService;
+  private openaiOptimizer: OpenAIOptimizerService;
   private sessionCache = new Map<string, DocumentSession>();
+  private templateCache = new Map<string, any>();
+  private flowCache = new Map<string, any>();
+  private stepStartTimes = new Map<string, number>(); // Track step start times
+  private readonly maxCacheSize = 100;
+  private readonly cacheTTL = 30 * 60 * 1000; // 30 minutes
 
   constructor(openaiApiKey: string) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
     this.intentService = new SemanticIntentService(openaiApiKey);
     this.analyticsService = new TemplateAnalyticsService();
+    this.flowPerformanceService = new FlowPerformanceService();
+    this.openaiOptimizer = new OpenAIOptimizerService(openaiApiKey, {
+      enableCache: true,
+      cacheTTL: 60,
+      maxTokens: 1500,
+      useSimpleModel: true,
+      temperature: 0.3
+    });
+  }
+
+  /**
+   * Clean expired cache entries
+   */
+  private cleanCache() {
+    const now = Date.now();
+    for (const [key, value] of this.templateCache.entries()) {
+      if (now - value.timestamp > this.cacheTTL) {
+        this.templateCache.delete(key);
+      }
+    }
+    for (const [key, value] of this.flowCache.entries()) {
+      if (now - value.timestamp > this.cacheTTL) {
+        this.flowCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Add to cache with size limit
+   */
+  private addToCache<K, V>(
+    cache: Map<K, V & { timestamp: number }>,
+    key: K,
+    value: V
+  ) {
+    this.cleanCache();
+    if (cache.size >= this.maxCacheSize) {
+      const firstKey = cache.keys().next().value;
+      cache.delete(firstKey);
+    }
+    cache.set(key, { ...value, timestamp: Date.now() });
   }
 
   /**
@@ -167,6 +217,23 @@ export class EnhancedDocumentService {
     // Save session
     await this.saveSession(session);
 
+    // Track flow start event
+    const flowId = `${template.template_id}_${template.flow?.id || 'default'}`;
+    this.stepStartTimes.set(`${sessionId}_${firstStep.id}`, Date.now());
+
+    await this.flowPerformanceService.recordEvent({
+      sessionId,
+      flowId,
+      templateId: template.template_id,
+      stepId: firstStep.id,
+      eventType: 'step_start',
+      timestamp: new Date(),
+      metadata: {
+        platform: request.context?.platform,
+        agentId: request.agentId
+      }
+    });
+
     return {
       type: 'question',
       content: firstStep.content,
@@ -195,6 +262,26 @@ export class EnhancedDocumentService {
     const extractedFields = await this.extractFields(request.message, session.fieldDefinitions);
     session.collectedFields = { ...session.collectedFields, ...extractedFields };
     session.updatedAt = new Date();
+
+    // Track step completion
+    const flowId = `${session.templateId}_${session.flow?.id || 'default'}`;
+    const stepKey = `${session.id}_${session.currentStep}`;
+    const stepStartTime = this.stepStartTimes.get(stepKey);
+    const timeSpent = stepStartTime ? Date.now() - stepStartTime : undefined;
+
+    await this.flowPerformanceService.recordEvent({
+      sessionId: session.id,
+      flowId,
+      templateId: session.templateId,
+      stepId: session.currentStep,
+      eventType: 'step_complete',
+      timestamp: new Date(),
+      timeSpent,
+      metadata: {
+        extractedFields: Object.keys(extractedFields),
+        platform: request.context?.platform
+      }
+    });
 
     // Find next step
     const currentStep = session.flow.steps.find(s => s.id === session.currentStep);
@@ -259,6 +346,20 @@ export class EnhancedDocumentService {
     // Continue to next step
     session.currentStep = nextStep.id;
     await this.saveSession(session);
+
+    // Track next step start
+    this.stepStartTimes.set(`${session.id}_${nextStep.id}`, Date.now());
+    await this.flowPerformanceService.recordEvent({
+      sessionId: session.id,
+      flowId,
+      templateId: session.templateId,
+      stepId: nextStep.id,
+      eventType: 'step_start',
+      timestamp: new Date(),
+      metadata: {
+        stepIndex: session.flow.steps.findIndex(s => s.id === nextStep.id)
+      }
+    });
 
     return {
       type: 'question',
@@ -356,6 +457,21 @@ export class EnhancedDocumentService {
     session.status = 'completed';
     await this.saveSession(session);
 
+    // Track flow completion
+    const flowId = `${template.template_id}_${session.flow?.id || 'default'}`;
+    await this.flowPerformanceService.recordEvent({
+      sessionId: session.id,
+      flowId,
+      templateId: template.template_id,
+      stepId: 'complete',
+      eventType: 'flow_complete',
+      timestamp: new Date(),
+      metadata: {
+        totalFields: Object.keys(session.collectedFields).length,
+        documentGenerated: true
+      }
+    });
+
     // Send subject line if available
     if (template.content.subject) {
       // This would be sent as a separate message in real implementation
@@ -378,7 +494,7 @@ export class EnhancedDocumentService {
   }
 
   /**
-   * Generate with OpenAI
+   * Generate with OpenAI (optimized)
    */
   private async generateWithOpenAI(
     template: any,
@@ -388,30 +504,45 @@ export class EnhancedDocumentService {
     const systemPrompt = template.instructions.systemPrompt || this.buildDefaultPrompt(template);
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: message
+      // Use the optimized OpenAI service
+      const { response, tokensUsed } = await this.openaiOptimizer.generateResponse(
+        message,
+        systemPrompt,
+        {
+          useCache: true,
+          priority: 'normal',
+          context: {
+            templateId: template.template_id,
+            category: template.category,
+            platform: context?.platform
           }
-        ],
-        max_tokens: 1500,
-        temperature: 0.3
-      });
+        }
+      );
 
-      const content = completion.choices[0]?.message?.content || '';
-      const tokensUsed = completion.usage?.total_tokens || 0;
-
-      return { content: content.trim(), tokensUsed };
+      return { content: response, tokensUsed };
 
     } catch (error) {
       console.error('OpenAI generation failed:', error);
-      throw new Error(`OpenAI generation failed: ${error.message}`);
+
+      // Fallback to direct OpenAI call if optimizer fails
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3
+        });
+
+        const content = completion.choices[0]?.message?.content || '';
+        const tokensUsed = completion.usage?.total_tokens || 0;
+
+        return { content: content.trim(), tokensUsed };
+      } catch (fallbackError) {
+        throw new Error(`OpenAI generation failed: ${fallbackError.message}`);
+      }
     }
   }
 
@@ -436,9 +567,16 @@ ${template.instructions.constraints?.join('\n') || ''}`;
   }
 
   /**
-   * Get enhanced template from database
+   * Get enhanced template from database with caching
    */
   private async getEnhancedTemplate(templateId: string): Promise<any> {
+    // Check cache first
+    const cached = this.templateCache.get(templateId);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+
+    // Fetch from database
     const { data, error } = await supabase
       .from('enhanced_templates')
       .select('*')
@@ -448,6 +586,9 @@ ${template.instructions.constraints?.join('\n') || ''}`;
     if (error || !data) {
       return null;
     }
+
+    // Cache the result
+    this.addToCache(this.templateCache, templateId, data);
 
     return data;
   }
@@ -582,5 +723,68 @@ ${template.instructions.constraints?.join('\n') || ''}`;
    */
   getActiveSessions(): DocumentSession[] {
     return Array.from(this.sessionCache.values()).filter(s => s.status !== 'completed');
+  }
+
+  /**
+   * Mark session as abandoned (called by cleanup job)
+   */
+  async markSessionAsAbandoned(sessionId: string): Promise<void> {
+    const session = this.sessionCache.get(sessionId);
+    if (!session || session.status === 'completed') {
+      return;
+    }
+
+    session.status = 'abandoned';
+    await this.saveSession(session);
+
+    // Track abandonment
+    const flowId = `${session.templateId}_${session.flow?.id || 'default'}`;
+    await this.flowPerformanceService.recordEvent({
+      sessionId,
+      flowId,
+      templateId: session.templateId,
+      stepId: session.currentStep,
+      eventType: 'flow_abandon',
+      timestamp: new Date(),
+      metadata: {
+        lastStep: session.currentStep,
+        fieldsCollected: Object.keys(session.collectedFields).length,
+        timeSinceLastUpdate: Date.now() - session.updatedAt.getTime()
+      }
+    });
+  }
+
+  /**
+   * Clean up old abandoned sessions
+   */
+  async cleanupAbandonedSessions(maxAgeHours: number = 24): Promise<void> {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
+
+    const { data: oldSessions } = await supabase
+      .from('document_request_sessions')
+      .select('id, template_id, current_step, collected_fields, updated_at')
+      .eq('status', 'collecting')
+      .lt('updated_at', cutoffTime.toISOString());
+
+    if (oldSessions) {
+      for (const session of oldSessions) {
+        await this.markSessionAsAbandoned(session.id);
+      }
+    }
+  }
+
+  /**
+   * Get OpenAI usage statistics
+   */
+  getOpenAIUsageStats() {
+    return this.openaiOptimizer.getUsageStats();
+  }
+
+  /**
+   * Clear OpenAI cache
+   */
+  clearOpenAICache(): void {
+    this.openaiOptimizer.clearCache();
   }
 }
