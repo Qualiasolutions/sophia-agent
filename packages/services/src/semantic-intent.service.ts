@@ -6,7 +6,7 @@
  */
 
 import { OpenAI } from 'openai';
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 export interface SemanticIntentResult {
   templateId: string;
@@ -28,11 +28,16 @@ export interface IntentClassificationOptions {
 
 export class SemanticIntentService {
   private openai: OpenAI;
+  private supabase: any;
   private cache = new Map<string, SemanticIntentResult[]>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(openaiApiKey: string) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**

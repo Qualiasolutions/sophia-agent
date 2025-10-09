@@ -5,7 +5,7 @@
  * for continuous optimization of the template system
  */
 
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 export interface TemplateUsageMetrics {
   templateId: string;
@@ -53,6 +53,15 @@ export interface AnalyticsSummary {
 }
 
 export class TemplateAnalyticsService {
+  private supabase: any;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+
   /**
    * Record template usage
    */
@@ -69,7 +78,7 @@ export class TemplateAnalyticsService {
   ): Promise<void> {
     try {
       // Update template analytics in enhanced_templates
-      await supabase.rpc('update_template_analytics', {
+      await this.supabase.rpc('update_template_analytics', {
         p_template_id: templateId,
         p_usage_count_increment: 1,
         p_success: metrics.success,
@@ -77,7 +86,7 @@ export class TemplateAnalyticsService {
       });
 
       // Log detailed usage in optimized_document_generations
-      await supabase
+      await this.supabase
         .from('optimized_document_generations')
         .insert({
           template_id: templateId,

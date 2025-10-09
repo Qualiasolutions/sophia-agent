@@ -4,7 +4,7 @@
  */
 
 import { OpenAI } from 'openai';
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 export interface OptimizationConfig {
   enableCache: boolean;
@@ -37,6 +37,7 @@ export class OpenAIOptimizerService {
   private openai: OpenAI;
   private responseCache = new Map<string, CachedResponse>();
   private config: OptimizationConfig;
+  private supabase: any;
   private stats: TokenUsageStats = {
     totalTokens: 0,
     totalCost: 0,
@@ -56,6 +57,12 @@ export class OpenAIOptimizerService {
       useStreaming: false,
       ...config
     };
+
+    // Initialize Supabase
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**
@@ -356,7 +363,7 @@ export class OpenAIOptimizerService {
     cached: boolean;
     context?: Record<string, any>;
   }): Promise<void> {
-    await supabase
+    await this.supabase
       .from('openai_usage_stats')
       .insert({
         prompt_hash: this.hashPrompt(data.prompt),

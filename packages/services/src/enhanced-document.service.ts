@@ -6,11 +6,11 @@
  */
 
 import { OpenAI } from 'openai';
+import { createClient } from '@supabase/supabase-js';
 import { SemanticIntentService } from './semantic-intent.service';
 import { TemplateAnalyticsService } from './template-analytics.service';
 import { FlowPerformanceService, FlowSessionEvent } from './flow-performance.service';
 import { OpenAIOptimizerService } from './openai-optimizer.service';
-import { supabase } from '@sophiaai/database';
 
 export interface EnhancedGenerationRequest {
   message: string;
@@ -58,6 +58,7 @@ export class EnhancedDocumentService {
   private analyticsService: TemplateAnalyticsService;
   private flowPerformanceService: FlowPerformanceService;
   private openaiOptimizer: OpenAIOptimizerService;
+  private supabase: any;
   private sessionCache = new Map<string, DocumentSession>();
   private templateCache = new Map<string, any>();
   private flowCache = new Map<string, any>();
@@ -65,7 +66,7 @@ export class EnhancedDocumentService {
   private readonly maxCacheSize = 100;
   private readonly cacheTTL = 30 * 60 * 1000; // 30 minutes
 
-  constructor(openaiApiKey: string) {
+  constructor(openaiApiKey: string, supabaseUrl?: string, supabaseKey?: string) {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
     this.intentService = new SemanticIntentService(openaiApiKey);
     this.analyticsService = new TemplateAnalyticsService();
@@ -77,6 +78,12 @@ export class EnhancedDocumentService {
       useSimpleModel: true,
       temperature: 0.3
     });
+
+    // Initialize Supabase client
+    this.supabase = createClient(
+      supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
 
   /**
@@ -577,7 +584,7 @@ ${template.instructions.constraints?.join('\n') || ''}`;
     }
 
     // Fetch from database
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('enhanced_templates')
       .select('*')
       .eq('template_id', templateId)
@@ -601,7 +608,7 @@ ${template.instructions.constraints?.join('\n') || ''}`;
     this.sessionCache.set(session.id, session);
 
     // Save to database
-    await supabase
+    await this.supabase
       .from('document_request_sessions')
       .upsert({
         id: session.id,
@@ -624,7 +631,7 @@ ${template.instructions.constraints?.join('\n') || ''}`;
     }
 
     // Fetch from database
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('document_request_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -761,7 +768,7 @@ ${template.instructions.constraints?.join('\n') || ''}`;
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
 
-    const { data: oldSessions } = await supabase
+    const { data: oldSessions } = await this.supabase
       .from('document_request_sessions')
       .select('id, template_id, current_step, collected_fields, updated_at')
       .eq('status', 'collecting')

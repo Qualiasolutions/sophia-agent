@@ -3,7 +3,7 @@
  * Tracks and analyzes flow performance metrics
  */
 
-import { supabase } from '@sophiaai/database';
+import { createClient } from '@supabase/supabase-js';
 
 export interface FlowMetrics {
   flowId: string;
@@ -41,6 +41,14 @@ export interface FlowSessionEvent {
 export class FlowPerformanceService {
   private readonly metricsCache = new Map<string, FlowMetrics>();
   private readonly cacheTTL = 5 * 60 * 1000; // 5 minutes
+  private supabase: any;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
 
   /**
    * Record a flow event
