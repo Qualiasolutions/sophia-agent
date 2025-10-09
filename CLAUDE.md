@@ -64,15 +64,15 @@ sophiaai/
 │   └── notes/                # Session notes and development logs
 ├── 📁 project/               # Project management & documentation
 │   ├── summaries/            # EPIC reports, session reports
-│   ├── deployment/           # Deployment documentation
-│   └── knowledge/            # Knowledge Base templates
-│       └── Templates/        # Document templates
-│           └── Registeration Forms/
-│               ├── reg_final/ # Optimized registration instructions (11 files)
-│               ├── Reg_ to Owners.docx
-│               ├── Reg_Banks.docx
-│               ├── Reg_Developers_.docx
-│               └── Registrations multiple sellers .docx
+│   └── deployment/           # Deployment documentation
+├── 📁 Knowledge Base/        # Knowledge Base and Source of Truth
+│   └── Sophias Source of Truth/
+│       └── Registeration Forms/
+│           ├── reg_final/   # Optimized registration instructions (11 files)
+│           ├── Reg_ to Owners.docx
+│           ├── Reg_Banks.docx
+│           ├── Reg_Developers_.docx
+│           └── Registrations multiple sellers .docx
 ├── 📁 .config/               # Consolidated configuration
 │   ├── claude/               # Claude AI configuration
 │   ├── cursor/               # Cursor IDE rules
@@ -278,7 +278,7 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 ## Document Generation & Registration System
 
 **Registration Document Templates:**
-The system uses optimized instruction files located in `project/knowledge/Knowledge Base/Templates/Registeration Forms/reg_final/`
+The system uses optimized instruction files located in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
 
 ### Registration Flow (Updated 2025-10-09)
 Sophia now follows a structured 3-step flow for all registration requests:

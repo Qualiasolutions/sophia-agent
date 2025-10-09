@@ -41,9 +41,9 @@ export class TemplateIntentClassifier {
         /\b(client\s+registration|client\s+registeration|buyer\s+registration|tenant\s+registration)\b/i
       ],
       templateMappings: {
-        'seller': ['seller_registration_standard'],
-        'developer': [], // Add these templates to database later
-        'bank': [] // Add these templates to database later
+        'seller': ['seller_registration_standard', 'seller_registration_marketing', 'rental_registration', 'seller_registration_advanced'],
+        'developer': ['developer_registration_viewing', 'developer_registration_no_viewing'],
+        'bank': ['bank_registration_property', 'bank_registration_land']
       },
       requiredFields: {
         'seller': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
@@ -51,10 +51,11 @@ export class TemplateIntentClassifier {
         'bank': ['client_name', 'client_phone', 'property_link_or_description', 'agent_phone']
       },
       suggestedQuestions: {
-        'seller': ['What type of registration do you need? (1) Seller/Owner Registration, (2) Developer Registration, or (3) Bank Registration)'],
-        'seller_subtype': ['For seller registration, which type do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?'],
-        'developer': ['What is the client name?', 'Is a viewing arranged?'],
-        'bank': ['What is the client full name?', 'What is the property link or description?']
+        'category': ['What type of registration do you need?\n1. **Seller/Owner Registration** (property owners)\n2. **Developer Registration** (new constructions/developments)\n3. **Bank Registration** (bank-owned properties/land)'],
+        'seller_subtype': ['What type of seller registration?\n1. **Standard** - Regular property registration\n2. **With Marketing Agreement** - Includes marketing terms\n3. **Rental Property** - For landlords/rentals\n4. **Advanced** - Multiple properties or special terms'],
+        'developer_subtype': ['Is a viewing arranged?\n1. **Viewing Arranged** - Viewing is scheduled\n2. **No Viewing** - No viewing scheduled yet'],
+        'bank_subtype': ['Is it for a property or land?\n1. **Property** - House/apartment from bank\n2. **Land** - Land/parcel from bank'],
+        'multiple_sellers': ['Will this registration be sent to multiple sellers? (e.g., husband and wife, co-owners)']
       }
     },
     {

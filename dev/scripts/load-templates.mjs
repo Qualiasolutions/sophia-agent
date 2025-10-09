@@ -95,7 +95,7 @@ async function readTemplateContent(filePath) {
 }
 
 async function loadTemplates() {
-  const templatesDir = path.join(__dirname, '../Knowledge Base/Templates');
+  const templatesDir = path.join(__dirname, '../../Knowledge Base/Sophias Source of Truth/Registeration Forms');
 
   console.log('📂 Reading templates from:', templatesDir);
 
