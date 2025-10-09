@@ -54,3 +54,7 @@ export {
   type MetricValue,
   type SystemMetrics,
 } from './metrics.service';
+
+// Analytics and Enhanced Document Services
+export * from './template-analytics.service';
+export * from './enhanced-document.service';
