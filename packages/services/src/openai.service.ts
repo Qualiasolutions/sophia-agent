@@ -508,44 +508,6 @@ export class OpenAIService {
     return inputCost + outputCost;
   }
 
-  /**
-   * Detect if a message is a document request
-   * @param message - The user's message text
-   * @returns True if the message is a document request
-   */
-  private isDocumentRequest(message: string): boolean {
-    const normalizedMessage = message.toLowerCase().trim();
-    const documentKeywords = [
-      'document',
-      'reg_',
-      'reg ',
-      'registration',
-      'registeration', // Common typo - missing 's'
-      'registraton',   // Common typo - missing 'i'
-      'registrat',    // Common typo - missing 'on'
-      'viewing form',
-      'viewing',
-      'exclusive',
-      'marketing',
-      'agreement',
-      'contract',
-      'valuation',
-      'follow up',
-      'email for',
-      'template',
-      'generate',
-      'create document',
-      'i want',
-      'i need',
-      'can you write',
-      'can you create',
-      'send me',
-    ];
-
-    return documentKeywords.some((keyword) =>
-      normalizedMessage.includes(keyword)
-    );
-  }
 
   /**
    * Detect if a message is a greeting
