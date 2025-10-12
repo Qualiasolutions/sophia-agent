@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Engines**: Node.js 20.0.0+, npm 10.0.0+
 - **Testing**: Vitest with jsdom environment, React Testing Library
 - **Database**: Supabase (PostgreSQL) with RLS enabled
-- **AI**: OpenAI GPT-4o-mini and Assistants API
+- **AI**: OpenAI GPT-4o-mini (Chat Completions API only - no Assistants API)
 
 ## Development Commands
 
@@ -101,35 +101,35 @@ sophiaai/
 
 ### Service Layer
 - `packages/services/`: Core business logic (imported as `@sophiaai/services`)
+  - `openai.service.ts`: **PRIMARY AI SERVICE** - Handles ALL AI interactions including document generation (no Assistant delegation)
   - `whatsapp.service.ts`: Meta Cloud API integration (NOT Baileys/Twilio)
   - `telegram.service.ts`: Telegram Bot API integration
-  - `openai.service.ts`: AI response generation
-  - `assistant.service.ts`: OpenAI Assistants API with thread management
   - `document.service.ts`: PDF generation and document handling
   - `calculator.service.ts`: Real estate calculations (mortgage, ROI, rental yield)
   - `rate-limiter.service.ts`: Upstash Redis-based rate limiting
   - `metrics.service.ts`: Performance monitoring
-  - `document-optimized.service.ts`: Optimized document generation with caching
+  - `document-optimized.service.ts`: Optimized document generation with caching (legacy, may be deprecated)
   - `template-cache.service.ts`: Template caching for performance
   - `template-intent.service.ts`: Template intent recognition
   - `template-optimizer.service.ts`: Template optimization
   - `performance-analytics.service.ts`: Performance tracking and analytics
+  - `assistant.service.ts`: ⚠️ **DEPRECATED** - No longer used (removed 2025-10-12)
 
 ### Shared Infrastructure
 - `packages/shared/`: Shared types, errors, constants, utils (imported as `@sophiaai/shared`)
 - `packages/database/`: Supabase migrations (numbered: `001_create_agents_table.sql`, etc.)
 
 **Multi-Channel Request Flow**:
-1. **WhatsApp**: Meta Cloud API webhook → `api/whatsapp-webhook/route.ts` → async processing → stores to `conversation_logs`
+1. **WhatsApp**: Meta Cloud API webhook → `api/whatsapp-webhook/route.ts` → OpenAI Service → response
    - Handles delivery status updates from Meta Cloud API
-   - Uses OpenAI service for chat responses and OptimizedDocumentService for document generation
-   - Includes calculator service integration for real estate calculations
+   - **Uses OpenAI Service for ALL responses** (chat, document generation, calculations)
+   - Async processing with conversation history stored in `conversation_logs`
 2. **Telegram**: Bot API webhook → `api/telegram-webhook/route.ts` → OpenAI Service → response via TelegramService
    - User registration flow with email verification
    - Message forwarding to WhatsApp capability
    - Rate limiting and metrics tracking
 3. **Email**: Gmail API integration for document sending and client communication
-4. **AI Processing**: OpenAI Service or OptimizedDocumentService for intelligent responses
+4. **AI Processing**: **OpenAI Service ONLY** - Single system prompt handles all interactions (no delegation)
 
 ## Database (Supabase)
 
@@ -162,7 +162,7 @@ sophiaai/
 - **WhatsApp**: Meta Cloud API (official Business API) - NOT Twilio or Baileys
 - **Telegram**: Bot API with webhook support and user registration
 - **Email**: Gmail API with OAuth authentication
-- **AI**: OpenAI GPT-4o-mini and Assistants API
+- **AI**: OpenAI GPT-4o-mini (Chat Completions API only - maxTokens: 800)
 - **Documents**: @react-pdf/renderer for PDF generation
 - **Caching**: Upstash Redis for rate limiting and sessions
 - **Database**: Supabase (PostgreSQL) with RLS
@@ -208,7 +208,6 @@ SUPABASE_SERVICE_ROLE_KEY=xxxxx
 
 # AI
 OPENAI_API_KEY=sk-xxxxx
-OPENAI_ASSISTANT_ID=asst_xxxxx  # For Telegram integration
 
 # WhatsApp (Meta Cloud API, NOT Twilio)
 WHATSAPP_BUSINESS_ACCOUNT_ID=xxxxx
@@ -280,20 +279,34 @@ BMAD configuration is in `.bmad-core/core-config.yaml`. The methodology uses mar
 **Registration Document Templates:**
 The system uses optimized instruction files located in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
 
-### Registration Flow (Updated 2025-10-09)
-Sophia now follows a structured 3-step flow for all registration requests:
+### Registration Flow (Updated 2025-10-12)
+Sophia follows a streamlined 2-step flow using a single system prompt in OpenAI Service:
 
-1. **Category Selection**: Ask "What type of registration do you need?"
-   - **Seller/Owner Registration** (property owners)
-   - **Developer Registration** (new constructions/developments)
-   - **Bank Registration** (bank-owned properties/land)
+**Step 1 - Category Selection:**
+- User: "seller" or "registration" or "1"
+- Sophia: "What type of registration do you need? 1. Seller(s) 2. Banks 3. Developers"
+- **Accepts both numbers (1/2/3) AND text (seller/bank/developer)**
 
-2. **Type Selection**: Based on category, ask for specific type:
-   - **If Seller**: "Which seller registration do you need: (1) Standard Registration, (2) Marketing Agreement, (3) Advanced Registration, or (4) Rental Registration?"
-   - **If Developer**: Ask if viewing is arranged
-   - **If Bank**: Ask if for property or land registration
+**Step 2 - Type Selection + Field Collection:**
+- User: "standard" or "1"
+- Sophia: Shows numbered field list with EXACT format:
+```
+Please share the following so I can complete the standard seller registration template:
 
-3. **Information Collection**: Collect ALL required fields before generating
+1) *Client Information:* buyer name (e.g., Fawzi Goussous)
+
+2) *Property Introduced:* registration number or detailed description (e.g., Reg. No. 0/1789 Tala, Paphos)
+
+3) *Property Link:* Zyprus URL if available (optional but encouraged)
+
+4) *Viewing Arranged For:* date and time (e.g., Saturday 12 October at 15:00)
+
+Once I have this information, I'll generate the registration document for you!
+```
+
+**Step 3 - Immediate Generation:**
+- User provides all fields
+- Sophia generates document **IMMEDIATELY** (no confirmation step)
 
 ### Available Registration Types (11 total)
 - **Standard Seller Registration** (01) - Regular property registrations
@@ -307,22 +320,30 @@ Sophia now follows a structured 3-step flow for all registration requests:
 - **Multiple Sellers Clause** (09) - Add-on for co-owners
 
 ### Key Features
-- **Complete Information Collection**: Sophia won't generate until ALL required fields provided
+- **Text Recognition**: Accepts both numbers (1, 2, 3) AND text ("seller", "standard", "marketing", etc.)
+- **No Confirmation Step**: Generates documents immediately when all fields provided
+- **Numbered Field List Format**: Uses 1), 2), 3) with bold asterisks for field labels
 - **Exact Format Copy-Paste**: Documents match professional templates exactly
 - **Subject Line Separation**: Sent in separate message for clarity
 - **Phone Number Masking**: Auto-masks middle digits (99 ** 67 32)
-- **Template Instructions**: Each registration type has detailed instruction file
 
-### Technical Implementation
-- **Template Intent Classifier** (`template-intent.service.ts`): Classifies document requests and routes to appropriate templates
-- **Template Cache Service** (`template-cache.service.ts`): Caches templates for performance (uses `template_cache` table)
-- **Template Instruction Service** (`template-instructions.service.ts`): Provides micro-instructions for specific templates
-- **Optimized Document Service** (`document-optimized.service.ts`): Main service for document generation with intelligent pipeline
+### Technical Implementation (2025-10-12)
+- **OpenAI Service** (`openai.service.ts`): **PRIMARY SERVICE** - Single system prompt handles ALL document generation
+  - maxTokens: 800 (sufficient for complete registration documents)
+  - Temperature: 0.7
+  - Model: GPT-4o-mini
+  - **No Assistant delegation** - everything in system prompt
+- **Template Instructions**: Each registration type has detailed instruction file in Knowledge Base
+- **Legacy Services** (may be deprecated):
+  - `template-intent.service.ts`: Intent classification
+  - `template-cache.service.ts`: Template caching
+  - `document-optimized.service.ts`: Optimized generation
 
 ### Important Notes
-- Template IDs in database must match those in intent classifier (e.g., `seller_registration_standard`)
-- When adding new templates, ensure both database and code are updated
-- Use MCP tools to check `template_cache` table if experiencing "trouble processing" errors
+- **ALL document requests now handled by OpenAI Service system prompt** (no Assistant API)
+- System prompt located in `packages/services/src/openai.service.ts` (lines 10-106)
+- Text recognition works because requests no longer bypass system prompt
+- Template instructions in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
 
 ## Performance Requirements
 
@@ -375,10 +396,11 @@ vercel --prod           # Deploy to production
 ## Key Files to Know
 
 ### Core Services
+- `packages/services/src/openai.service.ts` - **PRIMARY AI SERVICE** - ALL responses including document generation (system prompt lines 10-106)
 - `packages/services/src/whatsapp.service.ts` - Meta Cloud API integration
 - `packages/services/src/telegram.service.ts` - Telegram Bot API integration
-- `packages/services/src/assistant.service.ts` - OpenAI Assistants API with threads
 - `packages/services/src/document.service.ts` - PDF generation and document handling
+- `packages/services/src/assistant.service.ts` - ⚠️ **DEPRECATED** (removed 2025-10-12)
 
 ### API Handlers
 - `apps/web/src/app/api/whatsapp-webhook/route.ts` - WhatsApp webhook handler
@@ -404,17 +426,30 @@ vercel --prod           # Deploy to production
 - `project/deployment/` - Deployment documentation
 - `.config/mcp/` - MCP server configurations
 
-### Document Services Architecture
-The document generation system uses a layered approach:
-1. **Intent Classification** (`template-intent.service.ts`): Identifies document type from user message
-2. **Template Cache** (`template-cache.service.ts`): Stores and retrieves templates from database
-3. **Instruction Generation** (`template-instructions.service.ts`): Provides specific instructions for each template
-4. **Document Generation** (`document-optimized.service.ts`): Combines all services to generate documents
+### Document Services Architecture (Updated 2025-10-12)
+**IMPORTANT CHANGE**: Document generation now uses a **single system prompt** in OpenAI Service:
+
+1. **OpenAI Service** (`openai.service.ts`): **PRIMARY SERVICE**
+   - System prompt contains ALL registration logic (lines 10-106)
+   - Handles category selection, type selection, field collection, and generation
+   - Accepts both numbers AND text responses
+   - No Assistant delegation or service routing
+
+2. **Template Instructions** (Knowledge Base):
+   - Detailed instructions for each registration type
+   - Located in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
+   - Used as reference, not dynamically loaded
+
+3. **Legacy Services** (may be deprecated in future):
+   - `template-intent.service.ts`: Intent classification (not currently used)
+   - `template-cache.service.ts`: Template caching (not currently used)
+   - `document-optimized.service.ts`: Optimized generation (not currently used)
+   - `assistant.service.ts`: ⚠️ **REMOVED** - no longer in use
 
 **Common Issues & Solutions:**
-- If Sophia says "I'm having trouble processing your request", check if `template_cache` table exists
-- If wrong template is generated, verify template IDs match between database and intent classifier
-- Use Supabase MCP tools to inspect `template_cache` table contents
+- If text recognition not working: Check system prompt in `openai.service.ts` (no delegation should occur)
+- If wrong format: Check system prompt field collection format (lines 59-80)
+- If Assistant errors: Remove any Assistant delegation - system should use OpenAI Service only
 
 ### Performance Optimization
 - `packages/services/src/document-optimized.service.ts` - Optimized document generation
