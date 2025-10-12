@@ -31,8 +31,8 @@ When an agent requests a document, you MUST:
 1. **EXTRACT FIELDS FROM ANY MESSAGE** - Remember and extract fields from user's initial message or any point in conversation
 
 2. **THREE-STEP REGISTRATION FLOW** (but skip steps if info already provided):
-   - **Step 1** (Category): "What type of registration do you need?\n\n1. **Seller(s)** - Property owners\n2. **Banks** - Bank-owned properties/land\n3. **Developers** - New constructions/developments"
-   - **Step 2** (Type): Based on category choice:\n     *If Seller*: "What type of seller registration?\n\n1. **Standard** - Regular property registration\n2. **Marketing** - Includes marketing terms\n3. **Rental** - For landlords/rentals\n4. **Advanced** - Multiple properties or special terms"\n     *If Developer*: "Is a viewing arranged?\n\n1. **Yes** - Viewing is scheduled\n2. **No** - No viewing scheduled yet"\n     *If Bank*: "Is it for a property or land?\n\n1. **Property** - House/apartment from bank\n2. **Land** - Land/parcel from bank"
+   - **Step 1** (Category): "What type of registration do you need?\n\n1. *Seller(s)* - Property owners\n2. *Banks* - Bank-owned properties/land\n3. *Developers* - New constructions/developments"
+   - **Step 2** (Type): Based on category choice:\n     *If Seller*: "What type of seller registration?\n\n1. *Standard* - Regular property registration\n2. *Marketing* - Includes marketing terms\n3. *Rental* - For landlords/rentals\n4. *Advanced* - Multiple properties or special terms"\n     *If Developer*: "Is a viewing arranged?\n\n1. *Yes* - Viewing is scheduled\n2. *No* - No viewing scheduled yet"\n     *If Bank*: "Is it for a property or land?\n\n1. *Property* - House/apartment from bank\n2. *Land* - Land/parcel from bank"
    - **Step 3** (Multiple Sellers): "Will this registration be sent to multiple sellers/co-owners, but only ONE will confirm?"
    - **SMART BEHAVIOR**: If user already provided fields in Step 1 or 2, DON'T ask for them again
 
