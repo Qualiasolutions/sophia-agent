@@ -508,7 +508,7 @@ export class PerformanceAnalyticsService {
       .slice(0, 10);
   }
 
-  private getLeastUsedTemplates(metrics: PerformanceMetrics[]) {
+  private getLeastUsedTemplates(_metrics: PerformanceMetrics[]) {
     // Similar implementation for least used templates
     return [];
   }
@@ -544,12 +544,12 @@ export class PerformanceAnalyticsService {
     return result;
   }
 
-  private getDailyTrends(metrics: PerformanceMetrics[]) {
+  private getDailyTrends(_metrics: PerformanceMetrics[]) {
     // Implementation for daily trends
     return [];
   }
 
-  private getHourlyTrends(metrics: PerformanceMetrics[]) {
+  private getHourlyTrends(_metrics: PerformanceMetrics[]) {
     // Implementation for hourly trends
     return [];
   }

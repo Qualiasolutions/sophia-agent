@@ -48,14 +48,14 @@ export class TemplateIntentClassifier {
       requiredFields: {
         'seller': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
         'developer': ['client_name', 'viewing_datetime', 'agency_fee'],
-        'bank': ['client_name', 'client_phone', 'property_link_or_description', 'agent_phone']
+        'bank': ['client_name', 'client_phone', 'property_link', 'agent_phone']
       },
       suggestedQuestions: {
-        'category': ['What type of registration do you need?\n1. **Seller/Owner Registration** (property owners)\n2. **Developer Registration** (new constructions/developments)\n3. **Bank Registration** (bank-owned properties/land)'],
-        'seller_subtype': ['What type of seller registration?\n1. **Standard** - Regular property registration\n2. **With Marketing Agreement** - Includes marketing terms\n3. **Rental Property** - For landlords/rentals\n4. **Advanced** - Multiple properties or special terms'],
-        'developer_subtype': ['Is a viewing arranged?\n1. **Viewing Arranged** - Viewing is scheduled\n2. **No Viewing** - No viewing scheduled yet'],
-        'bank_subtype': ['Is it for a property or land?\n1. **Property** - House/apartment from bank\n2. **Land** - Land/parcel from bank'],
-        'multiple_sellers': ['Will this registration be sent to multiple sellers? (e.g., husband and wife, co-owners)']
+        'category': ['What type of registration do you need?\n\n1. **Seller(s)** - Property owners\n2. **Banks** - Bank-owned properties/land\n3. **Developers** - New constructions/developments'],
+        'seller_subtype': ['What type of seller registration?\n\n1. **Standard** - Regular property registration\n2. **Marketing** - Includes marketing terms\n3. **Rental** - For landlords/rentals\n4. **Advanced** - Multiple properties/special terms'],
+        'developer_subtype': ['Is a viewing arranged?\n\n1. **Yes** - Viewing is scheduled\n2. **No** - No viewing scheduled yet'],
+        'bank_subtype': ['Is it for a property or land?\n\n1. **Property** - House/apartment from bank\n2. **Land** - Land/parcel from bank'],
+        'multiple_sellers': ['Will this registration be sent to multiple sellers/co-owners, but only ONE will confirm? (e.g., only husband confirms for both husband & wife)']
       }
     },
     {
@@ -182,14 +182,53 @@ export class TemplateIntentClassifier {
     }
 
     // Special handling for registration - it should always match if keyword found
-    if (bestMatch.category === 'registration' && normalizedMessage.includes('registration')) {
+    if (bestMatch.category === 'registration') {
+      // Check if user already specified sub-type in initial message
+      const hasSellerKeywords = /\b(seller|owner|landlord|rental)\b/i.test(normalizedMessage);
+      const hasDeveloperKeywords = /\b(developer|development|project)\b/i.test(normalizedMessage);
+      const hasBankKeywords = /\b(bank|remu|gordian|altia|altamira)\b/i.test(normalizedMessage);
+
+      // If specific type detected, return appropriate sub-question
+      if (hasSellerKeywords) {
+        return {
+          category: 'registration',
+          confidence: 0.9,
+          likelyTemplates: ['seller_registration_standard'],
+          requiredFields: [],
+          suggestedQuestions: [
+            'What type of seller registration?\n\n1. **Standard** - Regular property registration\n2. **Marketing** - Includes marketing terms\n3. **Rental** - For landlords/rentals\n4. **Advanced** - Multiple properties/special terms'
+          ]
+        };
+      } else if (hasDeveloperKeywords) {
+        return {
+          category: 'registration',
+          confidence: 0.9,
+          likelyTemplates: ['developer_registration_viewing'],
+          requiredFields: [],
+          suggestedQuestions: [
+            'Is a viewing arranged?\n\n1. **Yes** - Viewing is scheduled\n2. **No** - No viewing scheduled yet'
+          ]
+        };
+      } else if (hasBankKeywords) {
+        return {
+          category: 'registration',
+          confidence: 0.9,
+          likelyTemplates: ['bank_registration_property'],
+          requiredFields: [],
+          suggestedQuestions: [
+            'Is it for a property or land?\n\n1. **Property** - House/apartment from bank\n2. **Land** - Land/parcel from bank'
+          ]
+        };
+      }
+
+      // No specific type detected - ask category question
       return {
         category: 'registration',
         confidence: 0.9,
-        likelyTemplates: ['seller_registration_standard'], // Default, will be refined in flow
+        likelyTemplates: ['seller_registration_standard'],
         requiredFields: [],
         suggestedQuestions: [
-          'What type of registration do you need?\n1. **Seller/Owner Registration** (property owners)\n2. **Developer Registration** (new constructions/developments)\n3. **Bank Registration** (bank-owned properties/land)'
+          'What type of registration do you need?\n\n1. **Seller(s)** - Property owners\n2. **Banks** - Bank-owned properties/land\n3. **Developers** - New constructions/developments'
         ]
       };
     }

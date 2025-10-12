@@ -266,6 +266,9 @@ async function processMessageAsync(
           .eq('id', messageId)
           .single();
 
+        // Check if message contains enhanced template patterns (declare at top level)
+        const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(messageText);
+
         let documentResponse;
 
         if (existingSession) {
@@ -295,9 +298,6 @@ async function processMessageAsync(
               .eq('id', messageId);
           }
         } else {
-          // Check if message contains enhanced template patterns
-          const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(messageText);
-
           if (hasFlowKeywords) {
             // Use enhanced service for flows
             console.log('DEBUG: Using EnhancedDocumentService for flow-based generation');
@@ -369,11 +369,19 @@ async function processMessageAsync(
           };
         } else {
           // Document complete
+          const tokensUsed = 'metadata' in documentResponse && documentResponse.metadata?.tokensUsed
+            ? documentResponse.metadata.tokensUsed
+            : ('tokensUsed' in documentResponse ? documentResponse.tokensUsed : 0);
+
+          const processingTime = 'metadata' in documentResponse && documentResponse.metadata?.processingTime
+            ? documentResponse.metadata.processingTime
+            : ('processingTime' in documentResponse ? documentResponse.processingTime : 0);
+
           aiResponse = {
             text: documentResponse.content,
-            tokensUsed: { total: documentResponse.tokensUsed || 0 },
-            responseTime: documentResponse.processingTime || 0,
-            costEstimate: calculateCost(documentResponse.tokensUsed || 0),
+            tokensUsed: { total: tokensUsed || 0 },
+            responseTime: processingTime || 0,
+            costEstimate: calculateCost(tokensUsed || 0),
             threadId: null,
             assistantId: null,
             runId: null,
@@ -389,12 +397,20 @@ async function processMessageAsync(
           }
         }
 
+        const responseMetadata = 'metadata' in documentResponse && documentResponse.metadata
+          ? documentResponse.metadata
+          : {
+              processingTime: 'processingTime' in documentResponse ? documentResponse.processingTime : 0,
+              tokensUsed: 'tokensUsed' in documentResponse ? documentResponse.tokensUsed : 0,
+              confidence: 'confidence' in documentResponse ? documentResponse.confidence : 0.95
+            };
+
         console.log('DEBUG: Document generation completed', {
           type: documentResponse.type,
           templateId: documentResponse.templateId,
-          processingTime: documentResponse.processingTime,
-          tokensUsed: documentResponse.tokensUsed,
-          confidence: documentResponse.confidence
+          processingTime: responseMetadata.processingTime,
+          tokensUsed: responseMetadata.tokensUsed,
+          confidence: responseMetadata.confidence
         });
 
         // Log document generation to database
@@ -404,10 +420,12 @@ async function processMessageAsync(
               agent_id: agentId,
               template_id: documentResponse.templateId,
               template_name: documentResponse.templateName,
-              category: documentResponse.metadata?.category || 'document',
-              processing_time_ms: documentResponse.processingTime || 0,
-              tokens_used: documentResponse.tokensUsed || 0,
-              confidence: documentResponse.confidence || 0.95,
+              category: 'metadata' in documentResponse && documentResponse.metadata?.category
+                ? documentResponse.metadata.category
+                : 'document',
+              processing_time_ms: responseMetadata.processingTime || 0,
+              tokens_used: responseMetadata.tokensUsed || 0,
+              confidence: responseMetadata.confidence || 0.95,
               original_request: messageText,
               generated_content: documentResponse.content,
               session_id: messageId,

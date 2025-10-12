@@ -106,7 +106,7 @@ export class SemanticIntentService {
     options: IntentClassificationOptions = {}
   ): Promise<SemanticIntentResult | null> {
     const results = await this.classifyIntent(message, { ...options, maxResults: 1 });
-    return results.length > 0 ? results[0] : null;
+    return results.length > 0 ? results[0]! : null;
   }
 
   /**
@@ -119,7 +119,7 @@ export class SemanticIntentService {
         input: text
       });
 
-      return response.data[0].embedding;
+      return response.data[0]!.embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
       throw new Error('Failed to generate embedding');
@@ -133,11 +133,11 @@ export class SemanticIntentService {
     embedding: number[],
     threshold: number,
     maxResults: number,
-    category?: string
+    _category?: string
   ): Promise<SemanticIntentResult[]> {
     try {
       // Use the match_template_intent function from database
-      const { data, error } = await supabase.rpc('match_template_intent', {
+      const { data, error } = await this.supabase.rpc('match_template_intent', {
         query_embedding: `[${embedding.join(',')}]`,
         match_threshold: threshold,
         max_results: maxResults
@@ -176,7 +176,7 @@ export class SemanticIntentService {
     const keywords = this.extractKeywords(normalizedMessage);
 
     try {
-      let query = supabase
+      let query = this.supabase
         .from('enhanced_templates')
         .select('template_id, name, category, triggers, metadata');
 
@@ -338,7 +338,7 @@ export class SemanticIntentService {
   async precomputeEmbeddings(): Promise<void> {
     console.log('🔄 Pre-computing embeddings for enhanced templates...');
 
-    const { data: templates, error } = await supabase
+    const { data: templates, error } = await this.supabase
       .from('enhanced_templates')
       .select('template_id, name, triggers')
       .is('embedding', null);
@@ -359,7 +359,7 @@ export class SemanticIntentService {
 
       const embedding = await this.generateEmbedding(text);
 
-      await supabase
+      await this.supabase
         .from('enhanced_templates')
         .update({ embedding })
         .eq('template_id', template.template_id);

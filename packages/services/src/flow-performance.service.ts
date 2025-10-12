@@ -55,7 +55,7 @@ export class FlowPerformanceService {
    */
   async recordEvent(event: FlowSessionEvent): Promise<void> {
     // Store in database
-    await supabase
+    await this.supabase
       .from('flow_performance_events')
       .insert({
         session_id: event.sessionId,
@@ -70,7 +70,7 @@ export class FlowPerformanceService {
 
     // Update session tracking
     if (event.eventType === 'flow_complete') {
-      await supabase
+      await this.supabase
         .from('document_request_sessions')
         .update({
           status: 'completed',
@@ -78,7 +78,7 @@ export class FlowPerformanceService {
         })
         .eq('id', event.sessionId);
     } else if (event.eventType === 'flow_abandon') {
-      await supabase
+      await this.supabase
         .from('document_request_sessions')
         .update({
           status: 'abandoned',
@@ -102,7 +102,7 @@ export class FlowPerformanceService {
     }
 
     // Fetch from database
-    const { data: events, error } = await supabase
+    const { data: events, error } = await this.supabase
       .from('flow_performance_events')
       .select('*')
       .eq('flow_id', flowId)
@@ -113,13 +113,13 @@ export class FlowPerformanceService {
     }
 
     // Calculate metrics
-    const sessions = new Set(events.map(e => e.session_id));
+    const sessions = new Set(events.map((e: any) => e.session_id));
     const sessionsByStep = new Map<string, Set<string>>();
     const stepTimes = new Map<string, number[]>();
     const dropoffByStep = new Map<string, number>();
 
     // Process events
-    events.forEach(event => {
+    events.forEach((event: any) => {
       if (!sessionsByStep.has(event.step_id)) {
         sessionsByStep.set(event.step_id, new Set());
       }
@@ -141,8 +141,8 @@ export class FlowPerformanceService {
     });
 
     // Calculate completion metrics
-    const completedSessions = events.filter(e => e.event_type === 'flow_complete')
-      .map(e => e.session_id);
+    const completedSessions = events.filter((e: any) => e.event_type === 'flow_complete')
+      .map((e: any) => e.session_id);
     const completionRate = (completedSessions.length / sessions.size) * 100;
 
     // Calculate dropoff points
@@ -150,7 +150,7 @@ export class FlowPerformanceService {
       .map(([stepId, dropoffCount]) => ({
         stepId,
         dropoffCount,
-        dropoffRate: (dropoffCount / sessionsByStep.get(stepId)?.size || 1) * 100
+        dropoffRate: (dropoffCount / (sessionsByStep.get(stepId)?.size || 1)) * 100
       }))
       .sort((a, b) => b.dropoffRate - a.dropoffRate);
 
@@ -192,7 +192,7 @@ export class FlowPerformanceService {
     topPerformingFlows: string[];
     problemFlows: string[];
   }> {
-    const { data: flows, error } = await supabase
+    const { data: flows, error } = await this.supabase
       .from('enhanced_templates')
       .select('template_id, flow')
       .eq('template_id', templateId)
@@ -209,7 +209,7 @@ export class FlowPerformanceService {
     }
 
     const flowMetrics = await Promise.all(
-      flows.map(flow => this.getFlowMetrics(flow.template_id))
+      flows.map((flow: any) => this.getFlowMetrics(flow.template_id))
     );
 
     const validMetrics = flowMetrics.filter(m => m !== null) as FlowMetrics[];
@@ -248,20 +248,20 @@ export class FlowPerformanceService {
     }>;
   }> {
     // Get today's sessions
-    const today = new Date().toISOString().split('T')[0];
-    const { data: todaySessions } = await supabase
+    const today = new Date().toISOString().split('T')[0]!;
+    const { data: todaySessions } = await this.supabase
       .from('document_request_sessions')
       .select('*')
       .gte('created_at', today);
 
     // Get all flows with performance data
-    const { data: templates } = await supabase
+    const { data: templates } = await this.supabase
       .from('enhanced_templates')
       .select('template_id')
       .not('flow', 'is', null);
 
     const flowMetrics = await Promise.all(
-      (templates || []).map(t => this.getFlowMetrics(t.template_id))
+      (templates || []).map((t: any) => this.getFlowMetrics(t.template_id))
     );
 
     const validMetrics = flowMetrics.filter(m => m !== null) as FlowMetrics[];
@@ -270,18 +270,22 @@ export class FlowPerformanceService {
       .map(m => m.flowId);
 
     // Calculate trends for last 7 days
-    const trends = [];
+    const trends: Array<{
+      date: string;
+      sessions: number;
+      completionRate: number;
+    }> = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split('T')[0]!;
 
-      const { data: daySessions } = await supabase
+      const { data: daySessions } = await this.supabase
         .from('document_request_sessions')
         .select('*')
         .eq('date(created_at)', dateStr);
 
-      const completed = daySessions?.filter(s => s.status === 'completed').length || 0;
+      const completed = daySessions?.filter((s: any) => s.status === 'completed').length || 0;
       const total = daySessions?.length || 0;
 
       trends.push({
@@ -336,18 +340,18 @@ export class FlowPerformanceService {
    */
   private calculateAverageSteps(events: any[], completedSessions: string[]): number {
     const stepCounts = completedSessions.map(sessionId => {
-      return events.filter(e => e.session_id === sessionId && e.event_type === 'step_complete').length;
+      return events.filter((e: any) => e.session_id === sessionId && e.event_type === 'step_complete').length;
     });
     return stepCounts.reduce((a, b) => a + b, 0) / stepCounts.length;
   }
 
   private calculateAverageTime(events: any[], completedSessions: string[]): number {
     const times = completedSessions.map(sessionId => {
-      const sessionEvents = events.filter(e => e.session_id === sessionId);
+      const sessionEvents = events.filter((e: any) => e.session_id === sessionId);
       const start = sessionEvents[0]?.timestamp;
-      const end = sessionEvents.find(e => e.event_type === 'flow_complete')?.timestamp;
+      const end = sessionEvents.find((e: any) => e.event_type === 'flow_complete')?.timestamp;
       return start && end ? new Date(end).getTime() - new Date(start).getTime() : 0;
-    }).filter(t => t > 0);
+    }).filter((t: number) => t > 0);
 
     return times.reduce((a, b) => a + b, 0) / times.length;
   }

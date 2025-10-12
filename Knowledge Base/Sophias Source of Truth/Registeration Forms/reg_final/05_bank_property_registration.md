@@ -1,87 +1,132 @@
-# Bank Property Registration Instructions
+# Bank Property Registration
+
+## TEMPLATE ID
+`bank_registration_property`
+
+## CATEGORY
+Banks Registration → Property
+
+## WHEN TO USE
+- Property (house/apartment) owned by bank
+- Banks: REMU, Gordian, Altia, Altamira, etc.
+- NOT for land (land requires viewing form - use template 06)
+- Bank link provided (remuproperties.com, etc.)
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "bank registration" or mentions REMU/Gordian/Altia/Altamira properties, follow these steps:
+### STEP 1: Information Collection
+Ask for these fields if not already provided:
+1. **Bank Name** - Auto-detect from property link OR ask agent
+2. **Agent Mobile** - The agent's phone number (will be masked)
+3. **Client Name** - Buyer's full name
+4. **Client Phone** - Buyer's phone number (will be masked)
+5. **Property Link** - URL from bank website (remuproperties.com, etc.)
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
-6. **IMPORTANT:** Automatically mask phone numbers (hide middle 2 digits)
+### STEP 2: Auto-Detection Rules
+- **Bank Name from URL**:
+  - `remuproperties.com` → "Dear Remu Team,"
+  - `gordian` → "Dear Gordian Team,"
+  - `altia` → "Dear Altia Team,"
+  - `altamira` → "Dear Altamira Team,"
+  - If URL doesn't show bank → ask agent
 
-## INFORMATION TO COLLECT
+- **Phone Masking**:
+  - +357 99 07 67 32 → 99 ** 67 32 (hide middle 2 digits)
+  - +44 79 83 24 71 → +44 79 ** 83 24 71
 
-**Required Fields:**
-1. **Client Name** - Full name of potential buyer
-2. **Client Phone Number** - Will be masked automatically
-3. **Property URL** - Full URL from bank website
-4. **Agent Phone Number** - Will be masked automatically
+### STEP 3: Fallback Property Identification
+If property link NOT available (rare), ask for:
+- Reg No. (e.g., "Reg No. 0/1678 Tala, Paphos")
+- OR Property description (e.g., "Limas Building, Unit No. 103 Tala, Paphos")
 
-**Optional Fields:**
-- Bank Name (can be inferred from URL)
-- Property Description (if no link available)
+### STEP 4: Generate Document
+Once ALL required fields collected, generate IMMEDIATELY.
 
-## PHONE NUMBER MASKING
+## EXACT TEMPLATE OUTPUT
 
-Automatically mask phone numbers:
-- Original: 99 07 67 32
-- Masked: 99 ** 67 32
-- Original: +44 79 07 83 24 71
-- Masked: +44 79 ** 83 24 71
-
-## OUTPUT FORMAT
-
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Email Body:**
 ```
 Dear [BANK_NAME] Team,
 
 This email is to provide you with a registration.
 
-Client Information: [CLIENT_NAME]
-Client Phone: [MASKED_CLIENT_PHONE]
+Please register the following client under CSC Zyprus Property Group LTD and send me a confirmation.
 
-Property Introduced: [PROPERTY_DESCRIPTION] (Reg No. [REG_NUMBER])
+My Mobile: [AGENT_MOBILE_MASKED]
 
-[IF property link: Property Link: [PROPERTY_LINK]]
+Registration Details: [CLIENT_NAME] [CLIENT_PHONE_MASKED]
 
-Agent Phone: [MASKED_AGENT_PHONE]
+Property: [PROPERTY_LINK]
 
-Looking forward to your prompt confirmation.
+Looking forward to your prompt reply.
 ```
 
-## SUBJECT LINE FORMAT
+## FIELD MAPPINGS
 
-Send this in a SEPARATE message:
+**CRITICAL: Use these EXACT labels**
+- `Dear [BANK_NAME] Team,` ← Auto-detect from URL or ask
+- `My Mobile:` ← Agent phone (masked)
+- `Registration Details:` ← Client name + client phone (masked)
+- `Property:` ← Bank property URL
 
-```
-Registration – [CLIENT_NAME] – [PROPERTY_REFERENCE]
-```
+**NO Subject Line**: Banks registrations don't use subject lines
 
-## EXAMPLE INTERACTION
+## PHONE MASKING RULES
 
-**User:** I need a bank registration for REMU property
+**Format: Hide middle 2 digits with **:**
+- `99 07 67 32` → `99 ** 67 32`
+- `+357 99 07 67 32` → `99 ** 67 32` (remove country code)
+- `+44 79 83 24 71` → `+44 79 ** 83 24 71` (keep country code for international)
 
-**You:** Please provide the following information for the Bank Property Registration:
+## EXAMPLES
 
-1. **Client Name** (potential buyer)
-2. **Client Phone Number**
-3. **Property URL** (full link from bank website)
-4. **Agent Phone Number**
+### Example 1: Complete Information with Auto-Detection
+**User:** "Bank property registration, my mobile 99 07 67 32, client Natasha Stainthorpe +44 79 83 24 71, property https://www.remuproperties.com/Cyprus/listing-29190"
 
-**User:** Client is Natasha Stainthorpe, phone +44 79 07 83 24 71, property https://www.remuproperties.com/Cyprus/listing-29190, agent phone 99 07 67 32
+**Sophia:** *(Generates immediately, auto-detects "Remu Team")*
 
-**You:** *Generate the email with masked phone numbers:*
-- Client Phone: +44 79 ** 83 24 71
-- Agent Phone: 99 ** 67 32
+Dear Remu Team,
+
+This email is to provide you with a registration.
+
+Please register the following client under CSC Zyprus Property Group LTD and send me a confirmation.
+
+My Mobile: 99 ** 67 32
+
+Registration Details: Natasha Stainthorpe +44 79 ** 83 24 71
+
+Property: https://www.remuproperties.com/Cyprus/listing-29190
+
+Looking forward to your prompt reply.
+
+### Example 2: No Property Link (Fallback)
+**User:** "Bank registration, Gordian bank, my mobile 99 12 34 56, client John Smith +357 96 11 22 33, property Reg No. 0/1678 Tala Paphos"
+
+**Sophia:** *(Generates with Reg No. instead of link)*
+
+Dear Gordian Team,
+
+This email is to provide you with a registration.
+
+Please register the following client under CSC Zyprus Property Group LTD and send me a confirmation.
+
+My Mobile: 99 ** 34 56
+
+Registration Details: John Smith +357 96 ** 22 33
+
+Property: Reg No. 0/1678 Tala, Paphos
+
+Looking forward to your prompt reply.
 
 ## IMPORTANT NOTES
 
-- Bank name can be inferred from property URL
-- If property_link is missing, require property_description
-- Always mask phone numbers in final output
-- Subject line sent separately
-- Do NOT include any instructions in the final output
-- Copy format EXACTLY as shown
+1. **NO Subject Line**: Bank registrations don't have subject lines
+2. **Bank Auto-Detection**: Extract bank name from property URL when possible
+3. **Phone Masking is MANDATORY**: Always mask middle 2 digits
+4. **Property Link Priority**:
+   - First: Use property URL from bank
+   - Second: Use Reg No. if no URL
+   - Third: Use property description if neither available
+5. **Simple Format**: Banks prefer short, direct registrations
+6. **Confirmation Request**: Always end with "Looking forward to your prompt reply."
+7. **CSC Zyprus Property Group LTD**: Always use full company name

@@ -9,7 +9,7 @@ import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { SemanticIntentService } from './semantic-intent.service';
 import { TemplateAnalyticsService } from './template-analytics.service';
-import { FlowPerformanceService, FlowSessionEvent } from './flow-performance.service';
+import { FlowPerformanceService } from './flow-performance.service';
 import { OpenAIOptimizerService } from './openai-optimizer.service';
 
 export interface EnhancedGenerationRequest {
@@ -47,7 +47,8 @@ export interface DocumentSession {
   collectedFields: Record<string, any>;
   missingFields: string[];
   flow?: any;
-  status: 'collecting' | 'generating' | 'completed';
+  fieldDefinitions?: any;
+  status: 'collecting' | 'generating' | 'completed' | 'abandoned';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,7 +115,9 @@ export class EnhancedDocumentService {
     this.cleanCache();
     if (cache.size >= this.maxCacheSize) {
       const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        cache.delete(firstKey);
+      }
     }
     cache.set(key, { ...value, timestamp: Date.now() });
   }
@@ -154,7 +157,7 @@ export class EnhancedDocumentService {
         };
       }
 
-      const bestMatch = intentResults[0];
+      const bestMatch = intentResults[0]!;
 
       // Get enhanced template
       const template = await this.getEnhancedTemplate(bestMatch.templateId);
@@ -291,7 +294,7 @@ export class EnhancedDocumentService {
     });
 
     // Find next step
-    const currentStep = session.flow.steps.find(s => s.id === session.currentStep);
+    const currentStep = session.flow.steps.find((s: any) => s.id === session.currentStep);
     if (!currentStep) {
       return {
         type: 'error',
@@ -313,10 +316,10 @@ export class EnhancedDocumentService {
       if (selectedOption) {
         // Find the decision point or next step based on selection
         const decisionPoint = session.flow.decisionPoints?.find(
-          dp => dp.question === currentStep.content
+          (dp: any) => dp.question === currentStep.content
         );
         if (decisionPoint) {
-          const option = decisionPoint.options.find(o => o.value === selectedOption);
+          const option = decisionPoint.options.find((o: any) => o.value === selectedOption);
           if (option) {
             nextStepId = option.nextStep;
           }
@@ -325,7 +328,7 @@ export class EnhancedDocumentService {
     }
 
     // Find next step in flow
-    const nextStep = session.flow.steps.find(s => s.id === nextStepId);
+    const nextStep = session.flow.steps.find((s: any) => s.id === nextStepId);
 
     if (!nextStep || nextStep.type === 'generation') {
       // Flow complete, generate document
@@ -364,7 +367,7 @@ export class EnhancedDocumentService {
       eventType: 'step_start',
       timestamp: new Date(),
       metadata: {
-        stepIndex: session.flow.steps.findIndex(s => s.id === nextStep.id)
+        stepIndex: session.flow.steps.findIndex((s: any) => s.id === nextStep.id)
       }
     });
 
@@ -378,11 +381,11 @@ export class EnhancedDocumentService {
       collectedFields: session.collectedFields,
       missingFields: this.getMissingFields(session),
       metadata: {
-        category: template?.category || 'unknown',
+        category: 'registration',
         confidence: 0.9,
         processingTime: 0,
         tokensUsed: 0,
-        matchType: 'flow'
+        matchType: 'hybrid'
       }
     };
   }
@@ -457,7 +460,7 @@ export class EnhancedDocumentService {
       tokensUsed,
       success: true,
       confidence: 0.95,
-      matchType: 'flow'
+      matchType: 'hybrid'
     });
 
     // Mark session as completed
@@ -495,7 +498,7 @@ export class EnhancedDocumentService {
         confidence: 0.95,
         processingTime,
         tokensUsed,
-        matchType: 'flow'
+        matchType: 'hybrid'
       }
     };
   }
@@ -548,7 +551,7 @@ export class EnhancedDocumentService {
 
         return { content: content.trim(), tokensUsed };
       } catch (fallbackError) {
-        throw new Error(`OpenAI generation failed: ${fallbackError.message}`);
+        throw new Error(`OpenAI generation failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`);
       }
     }
   }
@@ -671,7 +674,7 @@ ${template.instructions.constraints?.join('\n') || ''}`;
       // Look for patterns like "Field Name: value"
       const regex = new RegExp(`\\*?${field.label}\\*?[:\\s]+(.+?)(?=\\n|$)`, 'i');
       const match = message.match(regex);
-      if (match) {
+      if (match && match[1]) {
         extracted[field.name] = match[1].trim();
       }
     });
@@ -693,10 +696,10 @@ ${template.instructions.constraints?.join('\n') || ''}`;
 
     // Check for numbers
     const numberMatch = message.match(/\b(\d+)\b/);
-    if (numberMatch) {
+    if (numberMatch && numberMatch[1]) {
       const index = parseInt(numberMatch[1]) - 1;
       if (index >= 0 && index < options.length) {
-        return options[index];
+        return options[index] || null;
       }
     }
 

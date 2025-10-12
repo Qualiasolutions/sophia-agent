@@ -1,75 +1,136 @@
-# Developer Registration (No Viewing) Instructions
+# Developer Registration - No Viewing Arranged
+
+## TEMPLATE ID
+`developer_registration_no_viewing`
+
+## CATEGORY
+Developers Registration → No Viewing
+
+## WHEN TO USE
+- New construction/development project
+- Developer company (not individual seller)
+- Viewing NOT yet scheduled
+- Full registration without viewing arrangement
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "developer registration" and mentions NO viewing is scheduled yet, follow these steps:
+### STEP 1: Information Collection
+Ask for these fields if not already provided:
+1. **Developer Contact Name** - Person at developer company
+2. **Client Name(s)** - Buyer name(s)
+3. **Project Name** (optional) - Development project name if mentioned
+4. **Location** (optional) - Area/city if mentioned
+5. **Agency Fee** - Percentage + VAT (default: 8% + VAT)
+6. **Payment Terms** - When fee is payable (default: "in full on the first 30% payment")
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
+**DO NOT ASK FOR:**
+- Viewing date/time (not applicable for this template)
 
-## INFORMATION TO COLLECT
+### STEP 2: Field Extraction
+Remember:
+- This is for full registration WITHOUT viewing arrangement
+- Uses longer acceptance clause (includes viewing details clause)
+- Same fee structure as viewing-arranged template
 
-**Required Fields:**
-1. **Developer Contact Name** - Name of person at developer company
-2. **Client Name(s)** - Full names of buyer(s)
-3. **Agency Fee Percentage** - Commission percentage
+### STEP 3: Generate Document
+Once ALL required fields collected, generate IMMEDIATELY.
 
-**Optional Fields:**
-- Project Name
-- Project Location
+## EXACT TEMPLATE OUTPUT
 
-## OUTPUT FORMAT
+**Subject Line (send separately):**
+```
+Registration – [CLIENT_NAMES] – [PROJECT_NAME] – [LOCATION]
+```
+*(If project name and location not provided, use just client names)*
 
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Email Body:**
 ```
 Dear [DEVELOPER_CONTACT_NAME],
 
-This email is to provide you with a registration.
+This email is to provide you with the full registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
 
-Client Information: [CLIENT_NAMES]
+Registration Details: [CLIENT_NAMES]
 
-[IF project name: Project: [PROJECT_NAME]]
-[IF project location: Location: [PROJECT_LOCATION]]
+Fees: [AGENCY_FEE] on the Agreed/Accepted Sold price
+Payable in full on the first [PAYMENT_PERCENTAGE]% payment
 
-Fees: [AGENCY_FEE_PERCENT]% + VAT based on the final agreed sold price if sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD. Fees payable in full on first 30% payment.
+Please confirm registration
 
-Acceptance implies full registration with CSC Zyprus Property Group LTD regardless of viewing arrangement.
+Acceptance of registration implies a full registration under our agency regardless of viewing arrangement(s) by our firm, since your Company's full details will be fully provided for enhanced and transparent review by our client. Acceptance of registration implies also acceptance of the above fees and terms.
 
-Looking forward to your prompt confirmation.
+Looking forward to your prompt reply.
 ```
 
-## SUBJECT LINE FORMAT
+## FIELD MAPPINGS
 
-Send this in a SEPARATE message:
+**CRITICAL: Use these EXACT labels**
+- `Registration Details:` ← Client name(s)
+- `Fees:` ← Agency fee percentage on "Agreed/Accepted Sold price"
+- `Payable in full on the first [X]% payment` ← Payment terms
 
+**NO "Viewing Arranged for:" line** - This template doesn't have viewing
+
+## ACCEPTANCE CLAUSE (IMPORTANT)
+
+**This template uses EXTENDED acceptance clause:**
 ```
-Registration – [CLIENT_NAMES] – [PROJECT_NAME/Property Inquiry]
+Acceptance of registration implies a full registration under our agency regardless of viewing arrangement(s) by our firm, since your Company's full details will be fully provided for enhanced and transparent review by our client. Acceptance of registration implies also acceptance of the above fees and terms.
 ```
 
-## EXAMPLE INTERACTION
+**DO NOT use the short clause from template 07**
 
-**User:** I need a developer registration, no viewing yet
+## EXAMPLES
 
-**You:** Please provide the following information for the Developer Registration:
+### Example 1: Complete Information
+**User:** "Developer registration no viewing, contact Aris, client Neville Bester, fee 8% + VAT, payable on first 30%"
 
-1. **Developer Contact Name** (person at developer company)
-2. **Client Name(s)** (full names of buyers)
-3. **Agency Fee Percentage**
-4. **Project Name** (optional)
-5. **Project Location** (optional)
+**Sophia:** *(Generates immediately)*
 
-**User:** Developer is Aris, client is Neville Bester, fee is 8%
+**Subject:** Registration – Neville Bester
 
-**You:** *Generate the email with exact format above*
+Dear Aris,
+
+This email is to provide you with the full registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
+
+Registration Details: Neville Bester
+
+Fees: 8%+VAT on the Agreed/Accepted Sold price
+Payable in full on the first 30% payment
+
+Please confirm registration
+
+Acceptance of registration implies a full registration under our agency regardless of viewing arrangement(s) by our firm, since your Company's full details will be fully provided for enhanced and transparent review by our client. Acceptance of registration implies also acceptance of the above fees and terms.
+
+Looking forward to your prompt reply.
+
+### Example 2: With Project and Location
+**User:** "Developer no viewing, contact Fotis, clients George & Maria, Limas Heights project Paphos, 8% fee"
+
+**Sophia:** *(Generates with project/location in subject)*
+
+**Subject:** Registration – George & Maria – Limas Heights – Paphos
+
+Dear Fotis,
+
+This email is to provide you with the full registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
+
+Registration Details: George & Maria
+
+Fees: 8%+VAT on the Agreed/Accepted Sold price
+Payable in full on the first 30% payment
+
+Please confirm registration
+
+Acceptance of registration implies a full registration under our agency regardless of viewing arrangement(s) by our firm, since your Company's full details will be fully provided for enhanced and transparent review by our client. Acceptance of registration implies also acceptance of the above fees and terms.
+
+Looking forward to your prompt reply.
 
 ## IMPORTANT NOTES
 
-- Use different acceptance text: "Acceptance implies full registration regardless of viewing arrangement"
-- This is for cases where agent will provide full project details for client review
-- Subject line sent separately
-- Do NOT include any instructions in the final output
-- Copy format EXACTLY as shown
+1. **"Full Registration"**: Body starts with "full registration" (not just "registration")
+2. **Extended Acceptance Clause**: Explains why viewing isn't required
+3. **Looking Forward**: INCLUDE "Looking forward to your prompt reply." (unlike template 07)
+4. **Same Fee Structure**: Use same 8% + VAT and 30% payment terms as viewing template
+5. **Project/Location Optional**: Include if provided, omit if not
+6. **Developer Contact**: Use first name, not formal titles
+7. **Company Details Clause**: Mentions "your Company's full details will be fully provided"

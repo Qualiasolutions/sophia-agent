@@ -80,29 +80,41 @@ export class OptimizedDocumentService {
       const classification = this.intentClassifier.classifyIntent(request.message);
       metrics.intentClassification = Date.now() - classificationStartTime;
 
-      // Special handling for registration flow - don't generate immediately
-      if (classification.category === 'registration') {
-        metrics.totalTime = Date.now() - startTime;
-        metrics.tokensUsed = 0;
+      // Smart handling for registration - detect if user provided complete info
+      if (classification.category === 'registration' && classification.likelyTemplates.length > 0) {
+        // Try to extract fields from the initial message
+        const extractedFields = this.extractFieldsFromMessage(request.message);
+        const templateId = classification.likelyTemplates[0]!;
+        const missingFields = this.getMissingFieldsForTemplate(templateId, extractedFields);
 
-        // Return the flow question instead of generating a document
-        const response: DocumentGenerationResponse = {
-          content: classification.suggestedQuestions[0] || 'What type of registration do you need?',
-          templateId: 'registration_flow',
-          templateName: 'Registration Flow',
-          processingTime: metrics.totalTime,
-          tokensUsed: 0,
-          confidence: classification.confidence,
-          metadata: {
-            category: 'registration',
-            requiredFields: [],
-            optionalFields: [],
-            suggestions: classification.suggestedQuestions
-          }
-        };
+        // If user provided complete information upfront, skip flow and generate directly
+        if (missingFields.length === 0 && this.hasMinimumRequiredFields(templateId, extractedFields)) {
+          // User provided all info - generate document directly
+          console.log('[OptimizedDocumentService] Complete info detected - generating directly');
+          // Fall through to normal generation
+        } else {
+          // Missing fields - start flow with question
+          metrics.totalTime = Date.now() - startTime;
+          metrics.tokensUsed = 0;
 
-        await this.logDocumentGeneration(request, response, metrics);
-        return response;
+          const response: DocumentGenerationResponse = {
+            content: classification.suggestedQuestions[0] || 'What type of registration do you need?',
+            templateId: 'registration_flow',
+            templateName: 'Registration Flow',
+            processingTime: metrics.totalTime,
+            tokensUsed: 0,
+            confidence: classification.confidence,
+            metadata: {
+              category: 'registration',
+              requiredFields: missingFields,
+              optionalFields: [],
+              suggestions: classification.suggestedQuestions
+            }
+          };
+
+          await this.logDocumentGeneration(request, response, metrics);
+          return response;
+        }
       }
 
       // Step 2: Get optimized instructions (micro-instructions)
@@ -441,5 +453,69 @@ Best regards,
       checks,
       metrics: this.getMetrics()
     };
+  }
+
+  /**
+   * Extract fields from user message using pattern matching
+   */
+  private extractFieldsFromMessage(message: string): Record<string, string> {
+    const fields: Record<string, string> = {};
+
+    // Extract seller/landlord/owner name
+    const sellerMatch = message.match(/(?:seller|landlord|owner|from)\s+(?:is\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+    if (sellerMatch && sellerMatch[1]) fields.seller_name = sellerMatch[1].trim();
+
+    // Extract buyer/tenant/client name
+    const buyerMatch = message.match(/(?:buyer|tenant|client|to)\s+(?:is\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+(?:\s*&\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)?)*)/i);
+    if (buyerMatch && buyerMatch[1]) fields.buyer_names = buyerMatch[1].trim();
+
+    // Extract property description with Reg No
+    const regNoMatch = message.match(/(?:reg\s*(?:no|number)?[.\s:]*|registration\s+no[.\s:]*)\s*([0-9/]+(?:\s*[,\s]\s*[A-Za-z\s,]+)?)/i);
+    if (regNoMatch && regNoMatch[1]) fields.property_description = regNoMatch[1].trim();
+
+    // Extract viewing date and time
+    const viewingMatch = message.match(/(?:viewing|view)\s+(?:on\s+|for\s+)?([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}\s+at\s+\d{1,2}:\d{2}\s*(?:am|pm)?)/i);
+    if (viewingMatch && viewingMatch[1]) fields.viewing_datetime = viewingMatch[1].trim();
+
+    // Extract agency fee
+    const feeMatch = message.match(/(?:fee|fees)\s+(\d+%\s*\+?\s*VAT)/i);
+    if (feeMatch && feeMatch[1]) fields.agency_fee = feeMatch[1].trim();
+
+    // Extract property link
+    const linkMatch = message.match(/(https?:\/\/[^\s]+)/i);
+    if (linkMatch && linkMatch[1]) fields.property_link = linkMatch[1].trim();
+
+    // Extract phone numbers
+    const phoneMatch = message.match(/(\+?\d{2,3}\s*\d{2}\s*\d{2}\s*\d{2}\s*\d{2})/);
+    if (phoneMatch && phoneMatch[1]) fields.client_phone = phoneMatch[1].trim();
+
+    return fields;
+  }
+
+  /**
+   * Get missing fields for a specific template
+   */
+  private getMissingFieldsForTemplate(templateId: string, extractedFields: Record<string, string>): string[] {
+    const requiredFieldsByTemplate: Record<string, string[]> = {
+      'seller_registration_standard': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
+      'seller_registration_marketing': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime', 'agency_fee'],
+      'rental_registration': ['seller_name', 'buyer_names', 'property_description', 'viewing_datetime'],
+      'seller_registration_advanced': ['seller_name', 'buyer_names', 'property_description', 'agency_fee'],
+      'bank_registration_property': ['client_name', 'client_phone', 'property_link'],
+      'bank_registration_land': ['client_name', 'client_phone', 'property_link'],
+      'developer_registration_viewing': ['client_name', 'viewing_datetime', 'agency_fee'],
+      'developer_registration_no_viewing': ['client_name', 'agency_fee']
+    };
+
+    const requiredFields = requiredFieldsByTemplate[templateId] || [];
+    return requiredFields.filter(field => !extractedFields[field]);
+  }
+
+  /**
+   * Check if user provided minimum required fields for direct generation
+   */
+  private hasMinimumRequiredFields(templateId: string, extractedFields: Record<string, string>): boolean {
+    const missingFields = this.getMissingFieldsForTemplate(templateId, extractedFields);
+    return missingFields.length === 0;
   }
 }

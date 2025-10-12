@@ -343,6 +343,9 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
         .eq('id', message.message_id.toString())
         .single();
 
+      // Check if message contains enhanced template patterns (declare at top level)
+      const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(text);
+
       let documentResponse;
 
       if (existingSession) {
@@ -376,9 +379,6 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
             .eq('id', message.message_id.toString());
         }
       } else {
-        // Check if message contains enhanced template patterns
-        const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(text);
-
         if (hasFlowKeywords) {
           // Use enhanced service for flows
           logger.info('Using EnhancedDocumentService for flow-based generation', {
@@ -459,9 +459,9 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
         agentId: telegramUser.agent_id,
         type: documentResponse.type,
         templateId: documentResponse.templateId,
-        processingTime: documentResponse.processingTime,
-        tokensUsed: documentResponse.tokensUsed,
-        confidence: documentResponse.confidence
+        processingTime: documentResponse.metadata?.processingTime || 0,
+        tokensUsed: documentResponse.metadata?.tokensUsed || 0,
+        confidence: documentResponse.metadata?.confidence || 0
       });
 
       // Log document generation to database
@@ -472,9 +472,9 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
             template_id: documentResponse.templateId,
             template_name: documentResponse.templateName,
             category: documentResponse.metadata?.category || 'document',
-            processing_time_ms: documentResponse.processingTime || 0,
-            tokens_used: documentResponse.tokensUsed || 0,
-            confidence: documentResponse.confidence || 0.95,
+            processing_time_ms: documentResponse.metadata?.processingTime || 0,
+            tokens_used: documentResponse.metadata?.tokensUsed || 0,
+            confidence: documentResponse.metadata?.confidence || 0.95,
             original_request: text,
             generated_content: documentResponse.content,
             session_id: message.message_id.toString(),

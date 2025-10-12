@@ -111,7 +111,7 @@ export class OpenAIOptimizerService {
         ],
         max_tokens: this.config.maxTokens,
         temperature: this.config.temperature,
-        stream: this.config.useStreaming,
+        stream: false, // Explicitly disable streaming for type safety
         top_p: 0.9,
         frequency_penalty: 0.1,
         presence_penalty: 0.1
@@ -157,7 +157,7 @@ export class OpenAIOptimizerService {
         );
       }
 
-      throw new Error(`OpenAI generation failed: ${error.message}`);
+      throw new Error(`OpenAI generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -287,7 +287,9 @@ export class OpenAIOptimizerService {
     // Limit cache size
     if (this.responseCache.size > 100) {
       const firstKey = this.responseCache.keys().next().value;
-      this.responseCache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.responseCache.delete(firstKey);
+      }
     }
   }
 
@@ -298,7 +300,7 @@ export class OpenAIOptimizerService {
     return 'gpt-4o';
   }
 
-  private optimizePrompt(prompt: string, systemPrompt?: string): string {
+  private optimizePrompt(prompt: string, _systemPrompt?: string): string {
     // Remove redundant whitespace
     let optimized = prompt.replace(/\s+/g, ' ').trim();
 

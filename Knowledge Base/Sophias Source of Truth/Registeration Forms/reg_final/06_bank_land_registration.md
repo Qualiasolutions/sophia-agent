@@ -1,86 +1,103 @@
-# Bank Land Registration Instructions
+# Bank Land Registration
+
+## TEMPLATE ID
+`bank_registration_land`
+
+## CATEGORY
+Banks Registration → Land
+
+## WHEN TO USE
+- LAND (not property/house/apartment) owned by bank
+- Banks: REMU, Gordian, Altia, Altamira, etc.
+- Requires viewing form attachment
+- Bank link provided
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "bank land registration" or mentions land/parcel from banks, follow these steps:
+### STEP 1: Information Collection
+Same as Bank Property Registration PLUS:
+1. **Bank Name** - Auto-detect from property link OR ask agent
+2. **Agent Mobile** - The agent's phone number (will be masked)
+3. **Client Name** - Buyer's full name
+4. **Client Phone** - Buyer's phone number (will be masked)
+5. **Property Link** - URL from bank website (remuproperties.com, etc.)
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
-6. **CRITICAL:** Remind agent to attach viewing form
-7. **IMPORTANT:** Automatically mask phone numbers
+### STEP 2: Auto-Detection Rules
+- **Bank Name from URL** - Same as template 05
+- **Phone Masking** - Same as template 05
 
-## INFORMATION TO COLLECT
+### STEP 3: Generate Document + Reminder
+Generate document AND remind agent to attach viewing form.
 
-**Required Fields:**
-1. **Client Name** - Full name of potential buyer
-2. **Client Phone Number** - Will be masked automatically
-3. **Land Parcel URL** - Full URL from bank website for land
-4. **Agent Phone Number** - Will be masked automatically
+## EXACT TEMPLATE OUTPUT
 
-**Optional Fields:**
-- Bank Name (can be inferred from URL)
-
-## PHONE NUMBER MASKING
-
-Automatically mask phone numbers:
-- Original: 99 07 67 32
-- Masked: 99 ** 67 32
-
-## OUTPUT FORMAT
-
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Email Body:**
 ```
 Dear [BANK_NAME] Team,
 
 This email is to provide you with a registration.
 
-Client Information: [CLIENT_NAME]
-Client Phone: [MASKED_CLIENT_PHONE]
+Please find attached the viewing form for the below Land.
 
-Land Parcel Introduced: [LAND_DESCRIPTION]
+Please register the following client under CSC Zyprus Property Group LTD and send me a confirmation.
 
-Land Parcel Link: [LAND_PARCEL_URL]
+Registration Details: [CLIENT_NAME] [CLIENT_PHONE_MASKED]
 
-Agent Phone: [MASKED_AGENT_PHONE]
+Property: [PROPERTY_LINK]
 
-IMPORTANT: Please find the viewing form attached to this email.
-
-Looking forward to your prompt confirmation.
+Looking forward to your prompt reply.
 ```
 
-## SUBJECT LINE FORMAT
-
-Send this in a SEPARATE message:
-
+**IMPORTANT REMINDER TO AGENT (send after email):**
 ```
-Registration – [CLIENT_NAME] – Land Parcel – [LAND_REFERENCE]
+⚠️ REMINDER: Please attach the viewing form to this email before sending. Banks require viewing forms for land registrations.
 ```
 
-## EXAMPLE INTERACTION
+## FIELD MAPPINGS
 
-**User:** I need a bank registration for land
+**CRITICAL: Use these EXACT labels**
+- `Dear [BANK_NAME] Team,` ← Auto-detect from URL
+- `Please find attached the viewing form for the below Land.` ← ALWAYS include this line
+- `Registration Details:` ← Client name + client phone (masked)
+- `Property:` ← Bank land URL
 
-**You:** Please provide the following information for the Bank Land Registration:
+**NO "My Mobile:" line** - Land registrations don't include agent mobile
 
-1. **Client Name** (potential buyer)
-2. **Client Phone Number**
-3. **Land Parcel URL** (full link from bank website)
-4. **Agent Phone Number**
+## PHONE MASKING RULES
+Same as template 05:
+- `99 07 67 32` → `99 ** 67 32`
+- `+44 79 83 24 71` → `+44 79 ** 83 24 71`
 
-**User:** Client is John Smith, phone 99 12 34 56, land https://www.altiaproperties.com/land-listing-12345, agent phone 99 07 67 32
+## EXAMPLES
 
-**You:** *Generate the email with masked phone numbers and viewing form reminder*
+### Example 1: Complete Information
+**User:** "Bank land registration, client Natasha Stainthorpe +44 79 83 24 71, property https://www.remuproperties.com/Cyprus/listing-29190"
+
+**Sophia:** *(Generates email + viewing form reminder)*
+
+Dear Remu Team,
+
+This email is to provide you with a registration.
+
+Please find attached the viewing form for the below Land.
+
+Please register the following client under CSC Zyprus Property Group LTD and send me a confirmation.
+
+Registration Details: Natasha Stainthorpe +44 79** 832471
+
+Property: https://www.remuproperties.com/Cyprus/listing-29190
+
+Looking forward to your prompt reply.
+
+---
+
+⚠️ REMINDER: Please attach the viewing form to this email before sending. Banks require viewing forms for land registrations.
 
 ## IMPORTANT NOTES
 
-- **CRITICAL:** Banks require viewing form for land because sales persons don't attend viewings
-- Always include "Please find the viewing form attached to this email"
-- Always mask phone numbers in final output
-- Bank name can be inferred from land parcel URL
-- Subject line sent separately
-- Do NOT include any instructions in the final output
-- Copy format EXACTLY as shown
+1. **NO Subject Line**: Bank registrations don't have subject lines
+2. **NO Agent Mobile**: Land registrations don't include "My Mobile:" line
+3. **Viewing Form MANDATORY**: Always remind agent to attach viewing form
+4. **WHY Viewing Form?**: Banks don't attend viewings, so they need viewing form as proof that registration was made
+5. **Phone Masking**: Same rules as property registration
+6. **Attachment Line**: "Please find attached the viewing form for the below Land." is REQUIRED

@@ -1,32 +1,45 @@
-# Standard Seller Registration Instructions
+# Standard Seller Registration
+
+## TEMPLATE ID
+`seller_registration_standard`
+
+## CATEGORY
+Seller/Owner Registration → Standard
+
+## WHEN TO USE
+- Regular property sale registration
+- Property owner (not bank, not developer)
+- Standard viewing arrangement
+- No special marketing agreement needed
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "seller registration" or "owner registration" and says "standard", follow these steps:
+### STEP 1: Information Collection
+Ask for these fields if not already provided:
+1. **Seller Name** - Property owner's name (Dear ___,)
+2. **Buyer Name(s)** - Potential buyer(s), can be multiple (husband & wife)
+3. **Property Description** - With Reg No. if available
+4. **Viewing Date & Time** - Complete date and time
+5. **Property Link** (optional) - Zyprus.com URL if available
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
+### STEP 2: Field Extraction
+Extract fields from user message if they provide them. Remember:
+- "Seller" = Seller Name
+- "Buyer" or "Client" = Buyer Name(s)
+- "Reg No." or "Registration Number" = Property Description
+- "Saturday 3pm" = convert to "Saturday [date] at 15:00pm"
 
-## INFORMATION TO COLLECT
+### STEP 3: Generate Document
+Once ALL required fields collected, generate IMMEDIATELY using exact template below.
 
-**Required Fields:**
-1. **Seller Name** - The property owner's full name
-2. **Buyer Name(s)** - Full names of potential buyer(s)
-3. **Property Description** - Description of the property (e.g., "Your property with Reg. No. 0/1789 Tala, Paphos")
-4. **Viewing Date & Time** - Complete date and time for viewing
+## EXACT TEMPLATE OUTPUT
 
-**Optional Fields:**
-- Property Registration Number (if available)
-- Zyprus Property Link (if available)
-- Zyprus ID (if available)
+**Subject Line (send separately):**
+```
+Registration – [BUYER_NAMES] – Reg No. [REG_NUMBER] – [PROPERTY_DESCRIPTION]
+```
 
-## OUTPUT FORMAT
-
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Email Body:**
 ```
 Dear [SELLER_NAME], (Seller)
 
@@ -34,50 +47,87 @@ This email is to provide you with a registration.
 
 Client Information: [BUYER_NAMES]
 
-Property Introduced: [PROPERTY_DESCRIPTION]
+Property Introduced: Your Property in [LOCATION] with Registration No. [REG_NUMBER]
+
+Property Link: [PROPERTY_LINK]
 
 Viewing Arranged for: [VIEWING_DATETIME]
 
 Please confirm Registration and Viewing.
 
-For the confirmation, Could you please reply 'Yes I confirm'
+For the confirmation, Could you please reply ''Yes I confirm''
 
 Looking forward to your prompt confirmation.
 ```
 
-## SUBJECT LINE FORMAT
+## FIELD MAPPINGS
 
-Send this in a SEPARATE message:
+**CRITICAL: Use these EXACT labels in output**
+- `Client Information:` ← Buyer/Client names
+- `Property Introduced:` ← Property description
+- `Property Link:` ← Optional Zyprus URL
+- `Viewing Arranged for:` ← Date and time
 
-```
-Registration – [BUYER_NAMES] – [PROPERTY_REFERENCE]
-```
+**NEVER rename fields to:**
+- ~~Seller Name:~~
+- ~~Owner Name:~~
+- ~~Property Description:~~
+- ~~Viewing Time:~~
 
-Where [PROPERTY_REFERENCE] is:
-- Reg. No. [NUMBER] if registration number is available
-- Property description if no registration number
+## EXAMPLES
 
-## EXAMPLE INTERACTION
+### Example 1: Complete Information Upfront
+**User:** "Seller registration standard, seller is Maria Kelpi, buyer is Katerina Anastasiou, property Reg No. 0/2456 Tala Paphos, viewing Saturday 26th September 2025 at 14:30pm"
 
-**User:** I want a registration for a seller, standard
+**Sophia:** *(Generates immediately)*
 
-**You:** Please provide the following information for the Seller Registration:
+**Subject:** Registration – Katerina Anastasiou – Reg No. 0/2456 – Tala, Paphos
 
-1. **Seller Name** (property owner)
-2. **Buyer Name(s)** (potential buyers)
-3. **Property Description** (include Reg No. if available)
-4. **Viewing Date & Time** (e.g., Saturday 12 October at 15:00)
-5. **Property Link** (optional - Zyprus URL if available)
+Dear Maria Kelpi, (Seller)
 
-**User:** Seller is Maria Kelpi, buyer is Nikita Charalambous, property is Reg. No. 0/1789 Tala, Paphos, viewing on Saturday 12th October 2025 at 13:30pm
+This email is to provide you with a registration.
 
-**You:** *Generate the email with exact format above*
+Client Information: Katerina Anastasiou
+
+Property Introduced: Your Property in Tala, Paphos with Registration No. 0/2456
+
+Viewing Arranged for: Saturday 26th September 2025 at 14:30pm
+
+Please confirm Registration and Viewing.
+
+For the confirmation, Could you please reply ''Yes I confirm''
+
+Looking forward to your prompt confirmation.
+
+### Example 2: Partial Information (Progressive Collection)
+**User:** "seller registration"
+
+**Sophia:** "What type of seller registration?
+1. **Standard** - Regular property registration
+2. **With Marketing Agreement** - Includes marketing terms
+3. **Rental Property** - For landlords/rentals
+4. **Advanced** - Multiple properties or special terms"
+
+**User:** "standard, seller is Maria"
+
+**Sophia:** "Got it! For the Standard Seller Registration, I still need:
+- **Buyer Name(s)** (potential buyers)
+- **Property Description** (include Reg No. if available)
+- **Viewing Date & Time**"
+
+**User:** "buyer Katerina Anastasiou, property 0/2456 Tala"
+
+**Sophia:** "Perfect! Last thing - when is the viewing arranged for?"
+
+**User:** "Saturday 26th September at 14:30"
+
+**Sophia:** *(Generates with all collected information)*
 
 ## IMPORTANT NOTES
 
-- MUST include all required fields
-- If user doesn't provide viewing time, ask specifically for it
-- Subject line must be sent separately
-- Use "Property Introduced:" not "Property Description:" in output
-- Do NOT include any instructions in the final output
-- Copy the format EXACTLY as shown, including punctuation and spacing
+1. **Field Label Rule**: NEVER change field labels from template
+2. **Subject Line**: Always send separately after email body
+3. **Property Link**: If not provided, omit the line entirely (don't show empty)
+4. **Multiple Buyers**: Use "&" to separate names (e.g., "John & Mary Smith")
+5. **Phone Masking**: Not required for this template (sellers already know our number)
+6. **Confirmation Phrase**: Always include exact text ''Yes I confirm'' in quotes

@@ -116,7 +116,7 @@ export class TemplateAnalyticsService {
   ): Promise<TemplateUsageMetrics | null> {
     try {
       // Get base analytics from enhanced_templates
-      const { data: template, error: templateError } = await supabase
+      const { data: template, error: templateError } = await this.supabase
         .from('enhanced_templates')
         .select('template_id, name, category, analytics')
         .eq('template_id', templateId)
@@ -127,7 +127,7 @@ export class TemplateAnalyticsService {
       }
 
       // Calculate period-specific metrics
-      const { data: usage } = await supabase
+      const { data: usage } = await this.supabase
         .from('optimized_document_generations')
         .select('processing_time_ms, tokens_used, success, created_at')
         .eq('template_id', templateId)
@@ -138,7 +138,7 @@ export class TemplateAnalyticsService {
       const totalUsage = template.analytics?.usageCount || 0;
 
       // Calculate trends
-      const { trendDirection, trendPercentage } = await this.calculateTrend(
+      const { direction, percentage } = await this.calculateTrend(
         templateId,
         recentUsage.length,
         period
@@ -154,8 +154,8 @@ export class TemplateAnalyticsService {
         averageTokensUsed: this.calculateAverage(recentUsage, 'tokens_used'),
         lastUsed: new Date(template.analytics?.lastUsed || Date.now()),
         costPerGeneration: this.calculateCostPerGeneration(recentUsage),
-        trendDirection,
-        trendPercentage
+        trendDirection: direction,
+        trendPercentage: percentage
       };
 
     } catch (error) {
@@ -174,46 +174,52 @@ export class TemplateAnalyticsService {
       const startDate = this.getPeriodStart(period);
 
       // Get total generations
-      const { count: totalGenerations } = await supabase
+      const { count: totalGenerations } = await this.supabase
         .from('optimized_document_generations')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startDate);
 
       // Calculate average metrics
-      const { data: metrics } = await supabase
+      const { data: metrics } = await this.supabase
         .from('optimized_document_generations')
         .select('processing_time_ms, tokens_used, success')
         .gte('created_at', startDate);
 
       const avgResponseTime = metrics?.length > 0
-        ? metrics.reduce((sum, m) => sum + m.processing_time_ms, 0) / metrics.length
+        ? metrics.reduce((sum: number, m: any) => sum + m.processing_time_ms, 0) / metrics.length
         : 0;
 
       const successRate = metrics?.length > 0
-        ? (metrics.filter(m => m.success).length / metrics.length) * 100
+        ? (metrics.filter((m: any) => m.success).length / metrics.length) * 100
         : 0;
 
       const totalCost = this.calculateTotalCost(metrics || []);
 
       // Get top templates
-      const { data: topTemplatesData } = await supabase
+      const { data: topTemplatesData } = await this.supabase
         .from('optimized_document_generations')
         .select('template_id')
         .gte('created_at', startDate);
 
       const templateCounts = this.aggregateTemplateCounts(topTemplatesData || []);
+
+      // Get template names
+      const { data: templateInfo } = await this.supabase
+        .from('enhanced_templates')
+        .select('template_id, name, category')
+        .in('template_id', templateCounts.map(t => t.templateId));
+
       const topTemplates = templateCounts
         .slice(0, 5)
         .map(t => ({
-          ...t,
+          templateId: t.templateId,
+          name: templateInfo?.find((ti: any) => ti.template_id === t.templateId)?.name || t.templateId,
+          count: t.count,
           percentage: totalGenerations > 0 ? (t.count / totalGenerations) * 100 : 0
         }));
 
       // Get category breakdown
-      const { data: categoryData } = await supabase
-        .from('enhanced_templates')
-        .select('category')
-        .in('template_id', templateCounts.map(t => t.templateId));
+      const categoryData = templateInfo || [];
 
       const categoryBreakdown = this.aggregateCategoryBreakdown(
         categoryData || [],
@@ -258,7 +264,7 @@ export class TemplateAnalyticsService {
 
     try {
       // Get all enhanced templates
-      const { data: templates } = await supabase
+      const { data: templates } = await this.supabase
         .from('enhanced_templates')
         .select('template_id, name, category, analytics, metadata');
 
@@ -269,7 +275,7 @@ export class TemplateAnalyticsService {
       const minUsage = 5; // Minimum usage per month
 
       // Check slow templates
-      templates.forEach(template => {
+      templates.forEach((template: any) => {
         const responseTime = template.analytics?.averageResponseTime || 0;
         const successRate = template.analytics?.successRate || 0;
         const usageCount = template.analytics?.usageCount || 0;
@@ -370,7 +376,7 @@ export class TemplateAnalyticsService {
   private async getAllTemplateMetrics(
     period: 'day' | 'week' | 'month' | 'year'
   ): Promise<TemplateUsageMetrics[]> {
-    const { data: templates } = await supabase
+    const { data: templates } = await this.supabase
       .from('enhanced_templates')
       .select('template_id, name, category, analytics');
 
@@ -400,7 +406,7 @@ export class TemplateAnalyticsService {
     const previousPeriodStart = this.getPeriodStart(period, 1);
     const currentPeriodStart = this.getPeriodStart(period, 0);
 
-    const { count: previousUsage } = await supabase
+    const { count: previousUsage } = await this.supabase
       .from('optimized_document_generations')
       .select('*', { count: 'exact', head: true })
       .eq('template_id', templateId)
@@ -510,7 +516,7 @@ export class TemplateAnalyticsService {
     const categoryTotals: Record<string, number> = {};
 
     templateCounts.forEach(tc => {
-      const category = categories.find(c => c.template_id === tc.template_id)?.category || 'unknown';
+      const category = categories.find((c: any) => c.template_id === tc.templateId)?.category || 'unknown';
       categoryTotals[category] = (categoryTotals[category] || 0) + tc.count;
     });
 
@@ -528,7 +534,7 @@ export class TemplateAnalyticsService {
    */
   private async generateInsights(
     metrics: any[],
-    period: 'day' | 'week' | 'month' | 'year'
+    _period: 'day' | 'week' | 'month' | 'year'
   ): Promise<PerformanceInsight[]> {
     const insights: PerformanceInsight[] = [];
 

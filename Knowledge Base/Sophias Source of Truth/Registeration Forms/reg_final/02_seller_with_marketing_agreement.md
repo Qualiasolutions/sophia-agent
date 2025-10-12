@@ -1,35 +1,48 @@
-# Seller Registration with Marketing Agreement Instructions
+# Seller Registration with Marketing Agreement
+
+## TEMPLATE ID
+`seller_registration_marketing`
+
+## CATEGORY
+Seller/Owner Registration → With Marketing Agreement
+
+## WHEN TO USE
+- Property has "For Sale" sign/label outside
+- Riskier cases requiring marketing terms upfront
+- Seller needs to agree to fees and terms in registration
+- Optional direct communication clause needed
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "seller registration" with "marketing" or "marketing agreement", follow these steps:
+### STEP 1: Information Collection
+Ask for these fields if not already provided:
+1. **Seller Name** - Property owner's name
+2. **Buyer Name(s)** - Potential buyer(s)
+3. **Property Description** - With Reg No. or Unit No.
+4. **Viewing Date & Time** - Complete date and time
+5. **Agency Fee** - Percentage + VAT (e.g., "5% + VAT")
+6. **Property Link** (optional) - Zyprus.com URL if available
+7. **Include Direct Communication Clause?** - Ask agent if they want this (default: YES)
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
+### STEP 2: Field Extraction
+Remember:
+- Always ask for agency fee if not mentioned
+- Default fee is usually 5% + VAT but always confirm
+- Direct communication clause is optional (agent can request removal)
 
-## INFORMATION TO COLLECT
+### STEP 3: Generate Document
+Once ALL required fields collected, generate IMMEDIATELY.
 
-**Required Fields:**
-1. **Seller Name** - The property owner's full name
-2. **Buyer Name(s)** - Full names of potential buyer(s)
-3. **Property Description** - Description of the property
-4. **Viewing Date & Time** - Complete date and time for viewing
-5. **Agency Fee Percentage** - Commission percentage (e.g., 5)
-6. **Include No Direct Contact Clause** - Ask "yes" or "no"
+## EXACT TEMPLATE OUTPUT
 
-**Optional Fields:**
-- Property Registration Number
-- Zyprus Property Link
-
-## OUTPUT FORMAT
-
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Subject Line (send separately):**
 ```
-Dear [SELLER_NAME], (Seller)
+Registration – [BUYER_NAMES] – Reg No. [REG_NUMBER] – [PROPERTY_DESCRIPTION]
+```
+
+**Email Body:**
+```
+Dear [SELLER_NAME], (seller)
 
 Following our communication,
 
@@ -37,51 +50,72 @@ With this email, we kindly ask for your approval for the below registration and 
 
 Client Information: [BUYER_NAMES]
 
-Property Introduced: [PROPERTY_DESCRIPTION]
+Property Introduced: Your property with Registration No.[REG_NUMBER] [LOCATION]
+
+Property Link: [PROPERTY_LINK]
 
 Viewing arranged for: [VIEWING_DATETIME]
 
-Fees: [AGENCY_FEE_PERCENT]% + VAT based on the final agreed sold price. If sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD.
+Fees: [AGENCY_FEE] based on the final agreed sold price. If sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD.
 
-[IF yes: In the unusual event that client communicates directly with you regarding this property within 12 months of this registration, the agreed commission percentage as stated above is still payable.]
-[IF yes: Furthermore, if the property is sold to immediate relatives, friends, or limited companies of the introduced purchaser within 12 months, the full commission is still payable to the agency.]
+[OPTIONAL_DIRECT_COMMUNICATION_CLAUSE]
 
-If you agree with the above terms and conditions, could you please reply to this email stating: 'Yes I confirm'
-
-Please kindly remember to add also the copy of the title deed as well where possible when you send the email of the marketing agreement and registration together.
+If you agree with the above terms and conditions, could you please reply to this email stating: ''Yes I confirm''
 ```
 
-## SUBJECT LINE FORMAT
+## OPTIONAL DIRECT COMMUNICATION CLAUSE
 
-Send this in a SEPARATE message:
-
+**Include by default unless agent requests removal:**
 ```
-Registration – [BUYER_NAMES] – [PROPERTY_REFERENCE]
+In the unusual event that the above registered client of CSC Zyprus Property Group LTD communicates with you directly, you acknowledge and agree that you are legally bound to immediately cease such communication, notify us without delay, and inform our registered client that all further communication must be conducted solely through the agent CSC Zyprus Property Group LTD
 ```
 
-## EXAMPLE INTERACTION
+## FIELD MAPPINGS
 
-**User:** I need a seller registration with marketing agreement
+**CRITICAL: Use these EXACT labels**
+- `Client Information:` ← Buyer names
+- `Property Introduced:` ← Property with Reg No.
+- `Property Link:` ← Optional URL
+- `Viewing arranged for:` ← Date and time (lowercase "arranged")
+- `Fees:` ← Agency fee percentage
 
-**You:** Please provide the following information for the Seller Registration with Marketing Agreement:
+## EXAMPLES
 
-1. **Seller Name** (property owner)
-2. **Buyer Name(s)** (potential buyers)
-3. **Property Description** (include Reg No. if available)
-4. **Viewing Date & Time**
-5. **Agency Fee Percentage** (e.g., 5)
-6. **Include No Direct Contact Clause?** (yes/no)
-7. **Property Link** (optional)
+### Example 1: Complete Information
+**User:** "Registration with marketing agreement, seller Hillyar Michael, buyers Costas & Anna Mylonas, property Reg No. 0/5763 Erimi Limassol, viewing Sunday 20th June 2026 at 10:30am, fee 5% + VAT"
 
-**User:** All the above, with 5% fee, and yes to no direct contact
+**Sophia:** *(Generates immediately)*
 
-**You:** *Generate the email with exact format above, including the no direct contact clauses*
+**Subject:** Registration – Costas Mylonas & Anna Mylonas – Reg No. 0/5763 – Townhouse – Erimi, Limassol
+
+Dear Hillyar Michael, (seller)
+
+Following our communication,
+
+With this email, we kindly ask for your approval for the below registration and viewing.
+
+Client Information: Costas Mylonas & Anna Mylonas
+
+Property Introduced: Your property with Registration No.0/5763 Erimi, Limassol
+
+Viewing arranged for: Sunday 20th of June 2026 at 10:30am
+
+Fees: 5% + VAT based on the final agreed sold price. If sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD.
+
+In the unusual event that the above registered client of CSC Zyprus Property Group LTD communicates with you directly, you acknowledge and agree that you are legally bound to immediately cease such communication, notify us without delay, and inform our registered client that all further communication must be conducted solely through the agent CSC Zyprus Property Group LTD
+
+If you agree with the above terms and conditions, could you please reply to this email stating: ''Yes I confirm''
+
+### Example 2: Agent Requests Clause Removal
+**User:** "Remove the direct communication part"
+
+**Sophia:** *(Regenerates without the clause)*
 
 ## IMPORTANT NOTES
 
-- This is used for riskier cases or properties with sale signs
-- Include no direct contact clause unless agent specifically says to remove it
-- Always include the reminder about title deed copy
-- Marketing agreement terms are legally binding
-- Subject line sent separately
-- Do NOT include any instructions in the final output
+1. **Always include "Following our communication,"** at the start
+2. **Agency fee must be specified** - ask if not provided
+3. **Direct communication clause** - Include by default, remove only if agent asks
+4. **Confirmation phrase**: Use exact wording ''Yes I confirm''
+5. **Optional reminder**: Add "*Add the copy of the title deed as well. (Reminder for agent to do this..)" if agent mentions it
+6. **Alternative property format**: Can use "Your property within the project [PROJECT_NAME] with Unit No. [UNIT_NO]"

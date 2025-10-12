@@ -1,81 +1,128 @@
-# Developer Registration (Viewing Arranged) Instructions
+# Developer Registration - Viewing Arranged
+
+## TEMPLATE ID
+`developer_registration_viewing`
+
+## CATEGORY
+Developers Registration → Viewing Arranged
+
+## WHEN TO USE
+- New construction/development project
+- Developer company (not individual seller)
+- Viewing IS scheduled/arranged
+- Agent knows developer contact person
 
 ## SOPHIA'S INSTRUCTIONS
 
-When a user asks for a "developer registration" and mentions viewing is scheduled, follow these steps:
+### STEP 1: Information Collection
+Ask for these fields if not already provided:
+1. **Developer Contact Name** - Person at developer company agent communicates with
+2. **Client Name(s)** - Buyer name(s)
+3. **Project Name** (optional) - Development project name if mentioned
+4. **Location** (optional) - Area/city if mentioned
+5. **Viewing Date & Time** - Complete date and time
+6. **Agency Fee** - Percentage + VAT (default: 8% + VAT)
+7. **Payment Terms** - When fee is payable (default: "in full on the first 30% payment")
 
-1. Ask for ALL required information listed below
-2. Do NOT generate the document until ALL required fields are provided
-3. If any field is missing, specifically ask for that field
-4. Once all information is collected, generate the exact email format
-5. Send the subject line in a separate message
-6. **IMPORTANT:** Always ask for agency fee percentage
+### STEP 2: Field Extraction
+Remember:
+- Developer fee is usually higher than regular sellers (8% + VAT is common)
+- Payment terms: "Payable in full on the first 30% payment" is standard
+- Project name and location are optional but helpful
 
-## INFORMATION TO COLLECT
+### STEP 3: Generate Document
+Once ALL required fields collected, generate IMMEDIATELY.
 
-**Required Fields:**
-1. **Developer Contact Name** - Name of person/staff at developer company
-2. **Client Name(s)** - Full names of buyer(s)
-3. **Viewing Date & Time** - Full viewing date and time
-4. **Agency Fee Percentage** - Commission percentage (typically 5% or 8%)
+## EXACT TEMPLATE OUTPUT
 
-**Optional Fields:**
-- Project Name
-- Project Location
+**Subject Line (send separately):**
+```
+Registration – [CLIENT_NAMES] – [PROJECT_NAME] – [LOCATION]
+```
+*(If project name and location not provided, omit them)*
 
-## OUTPUT FORMAT
-
-Copy and paste this EXACTLY, replacing placeholders with actual information:
-
+**Email Body:**
 ```
 Dear [DEVELOPER_CONTACT_NAME],
 
-This email is to provide you with a registration.
+This email is to provide you with the registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
 
-Client Information: [CLIENT_NAMES]
+Registration Details: [CLIENT_NAMES]
 
-[IF project name: Project: [PROJECT_NAME]]
-[IF project location: Location: [PROJECT_LOCATION]]
+Viewing Arranged for: [VIEWING_DATETIME]
 
-Viewing arranged for: [VIEWING_DATETIME]
+Fees: [AGENCY_FEE] on the Agreed/Accepted Sold price
+Payable in full on the first [PAYMENT_PERCENTAGE]% payment
 
-Fees: [AGENCY_FEE_PERCENT]% + VAT based on the final agreed sold price if sold to the above-mentioned purchaser introduced to you by CSC Zyprus Property Group LTD. Fees payable in full on first 30% payment.
+Please confirm registration
 
-Acceptance of registration implies acceptance of fees and terms.
-
-Looking forward to your prompt confirmation.
+Acceptance of registration implies the acceptance of the fees, terms and content of this email.
 ```
 
-## SUBJECT LINE FORMAT
+## FIELD MAPPINGS
 
-Send this in a SEPARATE message:
+**CRITICAL: Use these EXACT labels**
+- `Registration Details:` ← Client name(s)
+- `Viewing Arranged for:` ← Date and time (uppercase "Arranged")
+- `Fees:` ← Agency fee percentage on "Agreed/Accepted Sold price"
+- `Payable in full on the first [X]% payment` ← Payment terms
 
-```
-Registration – [CLIENT_NAMES] – [PROJECT_NAME/PROPERTY_REFERENCE]
-```
+## EXAMPLES
 
-## EXAMPLE INTERACTION
+### Example 1: Complete Information
+**User:** "Developer registration with viewing, contact Fotis, clients Thomais Leonidou and Doros Antoniou, project Limas Project, viewing Wednesday 21st October 2025 at 16:00pm, fee 8% + VAT, payable on first 30% payment"
 
-**User:** I need a developer registration, viewing is arranged
+**Sophia:** *(Generates immediately)*
 
-**You:** Please provide the following information for the Developer Registration:
+**Subject:** Registration – Thomais Leonidou and Doros Antoniou – Limas Project
 
-1. **Developer Contact Name** (person at developer company, e.g., Fotis, Aris)
-2. **Client Name(s)** (full names of buyers)
-3. **Project Name** (optional)
-4. **Project Location** (optional)
-5. **Viewing Date & Time**
-6. **Agency Fee Percentage** (typically 5% or 8%)
+Dear Fotis,
 
-**User:** Developer is Fotis, clients are Thomais Leonidou and Doros Antoniou, project is Limas Project in Tala, viewing Wednesday 21st October at 16:00, fee is 8%
+This email is to provide you with the registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
 
-**You:** *Generate the email with exact format above*
+Registration Details: Thomais Leonidou and Doros Antoniou
+
+Viewing Arranged for: Wednesday 21st October 2025 at 16:00pm
+
+Fees: 8%+VAT on the Agreed/Accepted Sold price
+Payable in full on the first 30% payment
+
+Please confirm registration
+
+Acceptance of registration implies the acceptance of the fees, terms and content of this email.
+
+### Example 2: Minimal Information (No Project/Location)
+**User:** "Developer with viewing, contact Aris, client Neville Bester, viewing Friday at 3pm, fee 8%"
+
+**Sophia:** "I'll need a complete date for the viewing (e.g., Friday 15th March 2025)"
+
+**User:** "Friday 15th March 2025"
+
+**Sophia:** *(Generates without project name/location in subject)*
+
+**Subject:** Registration – Neville Bester
+
+Dear Aris,
+
+This email is to provide you with the registration of our below client, under our Estate Agency: CSC Zyprus Property Group LTD.
+
+Registration Details: Neville Bester
+
+Viewing Arranged for: Friday 15th March 2025 at 15:00pm
+
+Fees: 8%+VAT on the Agreed/Accepted Sold price
+Payable in full on the first 30% payment
+
+Please confirm registration
+
+Acceptance of registration implies the acceptance of the fees, terms and content of this email.
 
 ## IMPORTANT NOTES
 
-- Always ask agent for fee percentage (5%, 8%, or custom)
-- Fees payable in full on first 30% payment
-- Include acceptance clause about fees and terms
-- Subject line sent separately
-- Do NOT include any instructions in the final output
-- Copy format EXACTLY as shown
+1. **NO "Please confirm Registration and Viewing."** - Different from seller registrations
+2. **Acceptance Clause**: "Acceptance of registration implies the acceptance of the fees, terms and content of this email."
+3. **Agency Fee**: Default 8% + VAT (higher than regular sellers), but always ask agent to confirm
+4. **Payment Terms**: "Payable in full on the first 30% payment" is standard for developers
+5. **Project Name Optional**: Include in subject if mentioned, omit if not
+6. **Developer Contact**: Use first name (Fotis, Aris) not "Dear Mr./Mrs."
+7. **Looking Forward**: Don't include "Looking forward to your prompt reply." at end
