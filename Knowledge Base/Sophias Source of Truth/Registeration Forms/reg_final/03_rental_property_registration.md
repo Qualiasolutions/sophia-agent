@@ -15,6 +15,9 @@ Seller/Owner Registration → Rental Property
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (Client Information:, Property Introduced:, Viewing Arranged for:, Fees:)**
+
 Ask for these fields if not already provided:
 1. **Landlord Name** - Property owner's name
 2. **Tenant Name(s)** - Potential tenant(s)
@@ -22,6 +25,8 @@ Ask for these fields if not already provided:
 4. **Viewing Date & Time** - Complete date and time
 5. **Property Link** (optional) - Zyprus.com URL if available
 6. **Include Direct Communication Clause?** - Ask agent (default: YES)
+
+**When asking questions, use friendly names. In generated output, use EXACT labels from template below.**
 
 ### STEP 2: Field Extraction
 Remember:

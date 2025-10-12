@@ -15,6 +15,9 @@ Developers Registration → Viewing Arranged
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (Registration Details:, Viewing Arranged for:, Fees:, Payable in full...)**
+
 Ask for these fields if not already provided:
 1. **Developer Contact Name** - Person at developer company agent communicates with
 2. **Client Name(s)** - Buyer name(s)
@@ -23,6 +26,8 @@ Ask for these fields if not already provided:
 5. **Viewing Date & Time** - Complete date and time
 6. **Agency Fee** - Percentage + VAT (default: 8% + VAT)
 7. **Payment Terms** - When fee is payable (default: "in full on the first 30% payment")
+
+**When asking questions, use friendly names. In generated output, use EXACT labels from template below.**
 
 ### STEP 2: Field Extraction
 Remember:

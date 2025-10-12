@@ -15,6 +15,9 @@ Developers Registration → No Viewing
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (Registration Details:, Fees:, Payable in full...)**
+
 Ask for these fields if not already provided:
 1. **Developer Contact Name** - Person at developer company
 2. **Client Name(s)** - Buyer name(s)
@@ -22,6 +25,8 @@ Ask for these fields if not already provided:
 4. **Location** (optional) - Area/city if mentioned
 5. **Agency Fee** - Percentage + VAT (default: 8% + VAT)
 6. **Payment Terms** - When fee is payable (default: "in full on the first 30% payment")
+
+**When asking questions, use friendly names. In generated output, use EXACT labels from template below.**
 
 **DO NOT ASK FOR:**
 - Viewing date/time (not applicable for this template)

@@ -15,12 +15,17 @@ Banks Registration → Property
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (My Mobile:, Registration Details:, Property:)**
+
 Ask for these fields if not already provided:
 1. **Bank Name** - Auto-detect from property link OR ask agent
 2. **Agent Mobile** - The agent's phone number (will be masked)
 3. **Client Name** - Buyer's full name
 4. **Client Phone** - Buyer's phone number (will be masked)
 5. **Property Link** - URL from bank website (remuproperties.com, etc.)
+
+**When asking questions, use friendly names. In generated output, use EXACT labels from template below.**
 
 ### STEP 2: Auto-Detection Rules
 - **Bank Name from URL**:

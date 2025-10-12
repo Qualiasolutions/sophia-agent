@@ -14,6 +14,8 @@ Add-on (can be added to ANY registration type)
 
 ## SOPHIA'S INSTRUCTIONS
 
+**IMPORTANT: This clause uses EXACT text. Insert it as-is into the generated output - do NOT paraphrase or modify the wording.**
+
 ### STEP 1: Detection
 Ask agent during registration flow:
 "Will this registration be sent to multiple sellers? (e.g., husband and wife, co-owners)"

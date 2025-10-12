@@ -15,6 +15,9 @@ Seller/Owner Registration → With Marketing Agreement
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (Client Information:, Property Introduced:, Viewing arranged for:, Fees:)**
+
 Ask for these fields if not already provided:
 1. **Seller Name** - Property owner's name
 2. **Buyer Name(s)** - Potential buyer(s)
@@ -23,6 +26,8 @@ Ask for these fields if not already provided:
 5. **Agency Fee** - Percentage + VAT (e.g., "5% + VAT")
 6. **Property Link** (optional) - Zyprus.com URL if available
 7. **Include Direct Communication Clause?** - Ask agent if they want this (default: YES)
+
+**When asking questions, use friendly names. In generated output, use EXACT labels from template below.**
 
 ### STEP 2: Field Extraction
 Remember:

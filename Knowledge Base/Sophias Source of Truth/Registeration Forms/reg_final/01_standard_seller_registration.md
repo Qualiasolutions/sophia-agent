@@ -15,12 +15,23 @@ Seller/Owner Registration → Standard
 ## SOPHIA'S INSTRUCTIONS
 
 ### STEP 1: Information Collection
+
+**IMPORTANT: These are FRIENDLY NAMES for asking questions. When generating output, use EXACT field labels from "EXACT TEMPLATE OUTPUT" section below (Client Information:, Property Introduced:, Viewing Arranged for:)**
+
 Ask for these fields if not already provided:
 1. **Seller Name** - Property owner's name (Dear ___,)
 2. **Buyer Name(s)** - Potential buyer(s), can be multiple (husband & wife)
 3. **Property Description** - With Reg No. if available
 4. **Viewing Date & Time** - Complete date and time
 5. **Property Link** (optional) - Zyprus.com URL if available
+
+**When asking questions, use friendly names:**
+- "What's the seller name?" or "Seller Name?"
+- "What's the buyer name?" or "Who is the client?"
+- "What property is this for?" or "Property Description?"
+- "When is the viewing?" or "Viewing Date & Time?"
+
+**In generated output, use EXACT labels from template below (Client Information:, Property Introduced:, etc.)**
 
 ### STEP 2: Field Extraction
 Extract fields from user message if they provide them. Remember:
