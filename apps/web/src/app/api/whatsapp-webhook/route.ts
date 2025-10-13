@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { OpenAIService, WhatsAppService, CalculatorService, OptimizedDocumentService, EnhancedDocumentService } from '@sophiaai/services';
+import { OpenAIService, WhatsAppService, CalculatorService } from '@sophiaai/services';
 
 /**
  * POST handler for Twilio WhatsApp webhook
@@ -747,50 +747,6 @@ Just ask me to calculate and I'll guide you through it!`;
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-}
-
-/**
- * Detect if a message is requesting document generation
- */
-function detectDocumentRequest(message: string): boolean {
-  const documentKeywords = [
-    'template', 'document', 'form', 'agreement', 'registration', 'registeration', 'registraton', 'registrat', 'email',
-    'generate', 'create', 'need', 'draft', 'prepare', 'write', 'make',
-    'seller', 'buyer', 'client', 'viewing', 'marketing', 'social media',
-    'cra', 'contract', 'listing', 'appointment', 'notice', 'letter'
-  ];
-
-  const normalizedMessage = message.toLowerCase().trim();
-
-  // Check for document keywords
-  const hasDocumentKeyword = documentKeywords.some(keyword =>
-    normalizedMessage.includes(keyword)
-  );
-
-  // Check for common document request patterns
-  const documentPatterns = [
-    /i need \w+ (template|form|document)/i,
-    /generate \w+ (email|agreement|notice)/i,
-    /create \w+ (document|template|form)/i,
-    /prepare \w+ (agreement|contract|letter)/i,
-    /draft \w+ (email|notice|document)/i,
-    /write \w+ (email|letter|template)/i,
-    /make \w+ (form|document|template)/i,
-    /seller registration/i,
-    /seller registeration/i,
-    /buyer registration/i,
-    /viewing form/i,
-    /marketing agreement/i,
-    /social media/i,
-    /good client request/i,
-    /phone call required/i
-  ];
-
-  const matchesPattern = documentPatterns.some(pattern =>
-    pattern.test(normalizedMessage)
-  );
-
-  return hasDocumentKeyword || matchesPattern;
 }
 
 /**
