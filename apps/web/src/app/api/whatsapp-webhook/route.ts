@@ -245,28 +245,22 @@ async function processMessageAsync(
       })) || [];
 
     // Generate AI response using OpenAI Service for ALL requests
-    // (System prompt handles documents, chat, calculators, etc.)
+    // The system prompt in OpenAI Service handles document generation flows
     try {
-      console.log('DEBUG: Generating AI response', {
+      console.log('DEBUG: Using OpenAIService for response', {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
         historyCount: messageHistory.length,
       });
 
-      let aiResponse;
-
-      // Use OpenAI service for ALL responses (including documents)
-      // The system prompt in OpenAIService handles document generation flows
-      console.log('DEBUG: Using OpenAIService for response');
-
+      // Always use OpenAI Service - the system prompt handles all document flows
       const openaiService = new OpenAIService();
-      aiResponse = await openaiService.generateResponse(messageText, {
+      const aiResponse = await openaiService.generateResponse(messageText, {
         agentId: agentId || 'guest',
         messageHistory,
       });
 
       console.log('DEBUG: OpenAI generateResponse completed successfully');
-
 
       console.log('AI response generated', {
         agentId,
@@ -550,12 +544,3 @@ Just ask me to calculate and I'll guide you through it!`;
   }
 }
 
-/**
- * Calculate estimated cost based on token usage
- */
-function calculateCost(tokens: number): number {
-  // GPT-4o-mini pricing: $0.15 per 1M input tokens, $0.6 per 1M output tokens
-  const inputCost = (tokens * 0.6) / 1000000; // Assume 60% input tokens
-  const outputCost = (tokens * 0.4) / 1000000 * 0.6; // 40% output tokens
-  return inputCost + outputCost;
-}

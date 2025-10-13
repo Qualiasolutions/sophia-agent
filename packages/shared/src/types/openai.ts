@@ -38,7 +38,7 @@ export interface ToolCall {
 }
 
 export interface OpenAIConfig {
-  model: string;  // OpenAI model name (e.g., 'gpt-4o', 'gpt-4o-mini', 'gpt-4o-2024-11-20')
+  model: 'gpt-4o-mini' | 'gpt-4o' | 'gpt-4-turbo';
   temperature: number;
   maxTokens: number;
   timeout: number;  // in milliseconds
