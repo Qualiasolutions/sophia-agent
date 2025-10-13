@@ -67,12 +67,14 @@ sophiaai/
 │   └── deployment/           # Deployment documentation
 ├── 📁 Knowledge Base/        # Knowledge Base and Source of Truth
 │   └── Sophias Source of Truth/
-│       └── Registeration Forms/
-│           ├── reg_final/   # Optimized registration instructions (11 files)
-│           ├── Reg_ to Owners.docx
-│           ├── Reg_Banks.docx
-│           ├── Reg_Developers_.docx
-│           └── Registrations multiple sellers .docx
+│       ├── Registeration Forms/
+│       │   ├── reg_final/   # Optimized registration instructions (11 files)
+│       │   ├── Reg_ to Owners.docx
+│       │   ├── Reg_Banks.docx
+│       │   ├── Reg_Developers_.docx
+│       │   └── Registrations multiple sellers .docx
+│       └── MArketing & Viewing Forms/
+│           └── final/       # Viewing forms & marketing agreements (4 files)
 ├── 📁 .config/               # Consolidated configuration
 │   ├── claude/               # Claude AI configuration
 │   ├── cursor/               # Cursor IDE rules
@@ -344,6 +346,87 @@ Once I have this information, I'll generate the registration document for you!
 - System prompt located in `packages/services/src/openai.service.ts` (lines 10-106)
 - Text recognition works because requests no longer bypass system prompt
 - Template instructions in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
+
+## Viewing Forms & Marketing Agreements (Added 2025-10-13)
+
+**Template Location:** `Knowledge Base/Sophias Source of Truth/MArketing & Viewing Forms/final/`
+
+Sophia now supports viewing forms and marketing agreements in addition to registrations, following the same streamlined flow pattern.
+
+### Viewing Forms Flow
+
+**Step 1 - Type Selection:**
+- User: "viewing" or "viewing form" or "view property"
+- Sophia: "What type of viewing form do you need? 1. *Standard* 2. *Advanced* 3. *Multiple Persons*"
+- **Accepts both numbers (1/2/3) AND text (standard/advanced/multiple/couple/family)**
+
+**Step 2 - Field Collection:**
+- Sophia asks for required fields using numbered list format
+- Fields vary by type (7 fields for standard/advanced, 10+ for multiple persons)
+
+**Step 3 - Immediate Generation:**
+- User provides all fields → Sophia generates document immediately
+- **NO subject lines** (viewing forms are standalone documents)
+
+### Available Viewing Form Types (3 total)
+
+- **Standard Viewing Form** (01) - Single person, simple viewing
+  - 7 fields: Date, Client Name, Client ID, Reg Number, District, Municipality, Locality
+  - Company: "CSC Zyprus Property Group LTD (Reg. No. 742, Lic. No. 378/E)"
+
+- **Advanced Viewing/Introduction Form** (02) - With legal protection clause
+  - Same 7 fields as standard
+  - Title: "Viewing/Introduction Form" (includes digital introductions)
+  - Extensive legal protection paragraph for exclusive representation
+
+- **Multiple Persons Viewing Form** (03) - For 2+ people (couples, partners, families)
+  - 10+ fields: Date, Person 1 (Name/Passport/Country), Person 2 (Name/Passport/Country), District, Municipality, Reg Number
+  - Uses plural "we" instead of "I"
+  - Each person gets numbered entry and separate signature space
+  - Company reference uses "L.N." instead of "Lic. No."
+
+### Marketing Agreements Flow
+
+**Step 1 - Critical Question:**
+- User: "marketing" or "marketing agreement" or "promote property"
+- Sophia: "Are you using the standard agreement terms, or do you need custom terms?"
+
+**Step 2 - Field Collection:**
+- Sophia asks for 6 required fields:
+  1. Date (e.g., 1st March 2026)
+  2. Seller Name (e.g., George Papas)
+  3. Property Registration (e.g., 0/12345 Tala, Paphos)
+  4. Agency Fee (default: 5.0% plus VAT)
+  5. Marketing Price (e.g., €350,000)
+  6. Agent Name (e.g., Danae Pirou)
+
+**Step 3 - Conditional Generation:**
+- **If STANDARD terms** → Include "Charalambos Pitros" signature placeholder
+- **If CUSTOM terms** → NO signature, add contact note for Marios Poliviou (marios@zyprus.com, +357 99 92 15 60)
+
+### Available Marketing Agreement Type (1 total)
+
+- **Marketing Agreement** (04) - Non-exclusive 30-day agreement
+  - NON-EXCLUSIVE agreement with 5.0% + VAT default fee
+  - Includes direct communication protection clause (clause 6)
+  - Special signature handling based on standard vs custom terms
+  - **NO subject lines** (marketing agreements are standalone documents)
+
+### Key Features
+
+- **Same Flow Pattern**: Follows registration flow (type selection → field collection → immediate generation)
+- **Text Recognition**: Accepts both numbers AND text responses
+- **No Subject Lines**: Viewing forms and marketing agreements are standalone documents
+- **Exact Format**: Documents match professional templates exactly
+- **Company Details**: Precise wording varies by document type (Reg. No. vs L.N.)
+- **Legal Protection**: Advanced viewing form includes extensive legal clause
+
+### Technical Implementation
+
+- **System Prompt**: Contains all viewing and marketing logic in `openai.service.ts`
+- **Document Type Detection**: Keywords trigger appropriate flow (viewing/marketing/registration)
+- **Template Instructions**: Each form type has detailed instruction markdown file
+- **No PDF Generation**: Documents sent as formatted WhatsApp text messages
 
 ## Performance Requirements
 
