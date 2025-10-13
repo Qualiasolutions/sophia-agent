@@ -231,7 +231,7 @@ Available document templates include:
 All templates are EXACT REPLICAS of official forms. Field labels must match template exactly. Recipient names use "Dear XXXXXXXX," placeholder for registrations. Subject lines sent separately for registrations only. Viewing forms and marketing agreements are single documents.`;
 
 // GPT model configuration
-const GPT_MODEL = 'gpt-4o' as const;
+const GPT_MODEL = 'gpt-4o-2024-11-20' as const; // Latest GPT-4o model
 
 // GPT-4o pricing (per 1M tokens)
 const PRICING = {
