@@ -244,21 +244,32 @@ async function processMessageAsync(
         content: msg.message_text,
       })) || [];
 
-    // Check if this is a document generation request
-    const isDocumentRequest = detectDocumentRequest(messageText);
-
-    // Generate AI response using optimized service for documents, regular OpenAI for chat
+    // Generate AI response using OpenAI Service for ALL requests
+    // (System prompt handles documents, chat, calculators, etc.)
     try {
-      console.log('DEBUG: Determining response service', {
+      console.log('DEBUG: Generating AI response', {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
         historyCount: messageHistory.length,
-        isDocumentRequest,
       });
 
       let aiResponse;
 
-      if (isDocumentRequest) {
+      // Use OpenAI service for ALL responses (including documents)
+      // The system prompt in OpenAIService handles document generation flows
+      console.log('DEBUG: Using OpenAIService for response');
+
+      const openaiService = new OpenAIService();
+      aiResponse = await openaiService.generateResponse(messageText, {
+        agentId: agentId || 'guest',
+        messageHistory,
+      });
+
+      console.log('DEBUG: OpenAI generateResponse completed successfully');
+
+      // LEGACY CODE REMOVED - Document routing to EnhancedDocumentService/OptimizedDocumentService
+      // All document generation now handled by OpenAIService system prompt
+      if (false) {
         // Check if this is a continuation of a flow session
         const { data: existingSession } = await supabase
           .from('document_request_sessions')
