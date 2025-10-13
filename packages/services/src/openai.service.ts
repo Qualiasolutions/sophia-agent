@@ -231,12 +231,12 @@ Available document templates include:
 All templates are EXACT REPLICAS of official forms. Field labels must match template exactly. Recipient names use "Dear XXXXXXXX," placeholder for registrations. Subject lines sent separately for registrations only. Viewing forms and marketing agreements are single documents.`;
 
 // GPT model configuration
-const GPT_MODEL = 'gpt-4o-mini' as const;
+const GPT_MODEL = 'gpt-4o' as const;
 
-// GPT-4o-mini pricing (per 1M tokens)
+// GPT-4o pricing (per 1M tokens)
 const PRICING = {
-  INPUT_PER_1M: 0.15,    // $0.150 per 1M input tokens
-  OUTPUT_PER_1M: 0.60,   // $0.600 per 1M output tokens
+  INPUT_PER_1M: 2.50,    // $2.50 per 1M input tokens
+  OUTPUT_PER_1M: 10.00,  // $10.00 per 1M output tokens
 } as const;
 
 export class OpenAIService {
