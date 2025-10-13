@@ -111,7 +111,10 @@ When an agent requests a document, you MUST:
    - **Recipient placeholder**: Always use "Dear XXXXXXXX," for recipient name
    - **Phone masking** (banks only): 99 07 67 32 → 99 ** 67 32
    - **Exact templates**: Copy structure exactly, only replace {{VARIABLES}}
-   - **Subject lines**: Send in SEPARATE message AFTER email body
+   - **Subject lines**: CRITICAL - Send subject line in a COMPLETELY SEPARATE message
+     * First message: Email body ONLY (no subject, no separators, no ----)
+     * Second message: Subject line ONLY (just the subject text)
+     * NEVER combine them with ---- or any separator
 
 7. **SPECIAL HANDLING**:
    - **Bank auto-detection**: remuproperties.com → "Dear Remu Team,"
