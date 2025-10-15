@@ -21,7 +21,6 @@ import {
   createLogger,
   getMetricsService,
   getDeepSeekService,
-  DeepSeekService,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
 
