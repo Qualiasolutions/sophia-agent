@@ -399,48 +399,6 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
   }
 }
 
-/**
- * Detect if a message is requesting document generation
- */
-function detectDocumentRequest(message: string): boolean {
-  const documentKeywords = [
-    'template', 'document', 'form', 'agreement', 'registration', 'email',
-    'generate', 'create', 'need', 'draft', 'prepare', 'write', 'make',
-    'seller', 'buyer', 'client', 'viewing', 'marketing', 'social media',
-    'cra', 'contract', 'listing', 'appointment', 'notice', 'letter'
-  ];
-
-  const normalizedMessage = message.toLowerCase().trim();
-
-  // Check for document keywords
-  const hasDocumentKeyword = documentKeywords.some(keyword =>
-    normalizedMessage.includes(keyword)
-  );
-
-  // Check for common document request patterns
-  const documentPatterns = [
-    /i need \w+ (template|form|document)/i,
-    /generate \w+ (email|agreement|notice)/i,
-    /create \w+ (document|template|form)/i,
-    /prepare \w+ (agreement|contract|letter)/i,
-    /draft \w+ (email|notice|document)/i,
-    /write \w+ (email|letter|template)/i,
-    /make \w+ (form|document|template)/i,
-    /seller registration/i,
-    /buyer registration/i,
-    /viewing form/i,
-    /marketing agreement/i,
-    /social media/i,
-    /good client request/i,
-    /phone call required/i
-  ];
-
-  const matchesPattern = documentPatterns.some(pattern =>
-    pattern.test(normalizedMessage)
-  );
-
-  return hasDocumentKeyword || matchesPattern;
-}
 
 /**
  * Log conversation to database
