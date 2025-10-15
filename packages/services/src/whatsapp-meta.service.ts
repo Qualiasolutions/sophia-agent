@@ -76,24 +76,21 @@ class RateLimiter {
 export class WhatsAppMetaService {
   private accessToken: string;
   private phoneNumberId: string;
-  private businessAccountId: string;
   private supabaseClient?: SupabaseClient;
   private rateLimiter: RateLimiter;
 
   constructor(options?: WhatsAppMetaServiceOptions) {
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
 
-    if (!accessToken || !phoneNumberId || !businessAccountId) {
+    if (!accessToken || !phoneNumberId) {
       throw new Error(
-        'Missing required environment variables: WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, or WHATSAPP_BUSINESS_ACCOUNT_ID'
+        'Missing required environment variables: WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID'
       );
     }
 
     this.accessToken = accessToken;
     this.phoneNumberId = phoneNumberId;
-    this.businessAccountId = businessAccountId;
 
     // Initialize Supabase client if not provided
     if (options?.supabaseClient) {
