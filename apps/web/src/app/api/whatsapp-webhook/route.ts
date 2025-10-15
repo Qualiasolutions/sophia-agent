@@ -1,12 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { OpenAIService, WhatsAppService, CalculatorService } from '@sophiaai/services';
+import { OpenAIService, WhatsAppMetaService, CalculatorService } from '@sophiaai/services';
 
 /**
- * POST handler for Twilio WhatsApp webhook
- * Receives incoming messages from agents via WhatsApp
+ * Meta Cloud API Webhook Types
+ */
+interface WhatsAppWebhookEntry {
+  id: string;
+  changes: Array<{
+    value: {
+      messaging_product: string;
+      metadata: {
+        display_phone_number: string;
+        phone_number_id: string;
+      };
+      contacts?: Array<{
+        profile: { name: string };
+        wa_id: string;
+      }>;
+      messages?: Array<{
+        from: string;
+        id: string;
+        timestamp: string;
+        type: string;
+        text?: { body: string };
+      }>;
+      statuses?: Array<{
+        id: string;
+        status: string;
+        timestamp: string;
+        recipient_id: string;
+      }>;
+    };
+    field: string;
+  }>;
+}
+
+/**
+ * GET handler for webhook verification (Meta Cloud API)
+ * Verifies webhook URL during initial setup
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const { searchParams } = new URL(request.url);
+  const mode = searchParams.get('hub.mode');
+  const token = searchParams.get('hub.verify_token');
+  const challenge = searchParams.get('hub.challenge');
+
+  console.log('[Webhook Verify] Received verification request', {
+    mode,
+    token: token ? '***' + token.slice(-4) : null,
+    hasChallenge: !!challenge,
+  });
+
+  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+  if (mode === 'subscribe' && token === verifyToken) {
+    console.log('[Webhook Verify] Verification successful');
+    return new NextResponse(challenge, { status: 200 });
+  }
+
+  console.error('[Webhook Verify] Verification failed', {
+    mode,
+    tokenMatch: token === verifyToken,
+  });
+
+  return new NextResponse('Forbidden', { status: 403 });
+}
+
+/**
+ * POST handler for Meta Cloud API WhatsApp webhook
+ * Receives incoming messages and status updates from WhatsApp Business API
  *
- * Performance: Responds within 5 seconds to prevent Twilio retries
+ * Performance: Responds within 5 seconds to prevent Meta retries
  * Error Handling: Returns 200 OK for all scenarios to prevent retry storms
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -17,77 +82,91 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   try {
-    // Parse form data (Twilio sends application/x-www-form-urlencoded)
-    const formData = await request.formData();
+    // Meta Cloud API sends JSON (not form data like Twilio)
+    const body = await request.json();
 
-    // DEBUG: Log all form data
-    const allFormData: Record<string, string> = {};
-    for (const [key, value] of formData.entries()) {
-      allFormData[key] = value.toString();
-    }
-    console.log('=== WEBHOOK FORM DATA ===', { formData: allFormData });
-
-    const messageBody = formData.get('Body')?.toString();
-    const fromNumber = formData.get('From')?.toString();
-    const messageStatus = formData.get('MessageStatus')?.toString();
-    const messageSid = formData.get('MessageSid')?.toString();
-
-    // Check if this is a status callback (no message body, but has status)
-    if (!messageBody && messageStatus && messageSid) {
-      console.log('DEBUG: Status callback detected', { messageStatus, messageSid });
-      // This is a delivery status update
-      void processStatusUpdateAsync(messageSid, messageStatus);
-      // Return empty TwiML response (Twilio expects XML, not JSON)
-      return new NextResponse('<Response></Response>', {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
-    }
-
-    // Validate required fields for incoming message
-    if (!messageBody || !fromNumber || !messageSid) {
-      console.error('Missing required fields in webhook payload', {
-        hasBody: !!messageBody,
-        hasFrom: !!fromNumber,
-        hasMessageSid: !!messageSid,
-      });
-
-      // Return empty TwiML even for invalid payloads to prevent Twilio retries
-      return new NextResponse('<Response></Response>', {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
-    }
-
-    // Strip 'whatsapp:' prefix and all whitespace from phone number
-    // Twilio may send: whatsapp:+357 99111668 or whatsapp:+35799111668
-    // Normalize to: +35799111668 for database lookup
-    const phoneNumber = fromNumber.replace('whatsapp:', '').replace(/\s/g, '');
-
-    // Process message and wait for completion (instead of fire-and-forget)
-    // This ensures Vercel doesn't kill the function before processing completes
-    await processMessageAsync(phoneNumber, messageBody, messageSid).catch((error) => {
-      console.error('CRITICAL: Unhandled error in async message processing', {
-        phoneNumber: phoneNumber.substring(0, 7) + 'X'.repeat(Math.max(0, phoneNumber.length - 7)),
-        messageId: messageSid,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+    console.log('[Webhook] Received payload', {
+      object: body.object,
+      hasEntry: !!body.entry,
+      entryCount: body.entry?.length || 0,
     });
 
-    // Return empty TwiML response (Twilio expects XML, not JSON)
-    return new NextResponse('<Response></Response>', {
-      status: 200,
-      headers: { 'Content-Type': 'text/xml' },
-    });
+    // Validate webhook is for WhatsApp Business Account
+    if (body.object !== 'whatsapp_business_account') {
+      console.warn('[Webhook] Invalid object type', { object: body.object });
+      return NextResponse.json({ status: 'error', message: 'Invalid object type' }, { status: 400 });
+    }
+
+    // Process each entry (usually just one)
+    const entries: WhatsAppWebhookEntry[] = body.entry || [];
+
+    for (const entry of entries) {
+      for (const change of entry.changes) {
+        const value = change.value;
+
+        console.log('[Webhook] Processing change', {
+          field: change.field,
+          hasMessages: !!value.messages,
+          hasStatuses: !!value.statuses,
+          messageCount: value.messages?.length || 0,
+          statusCount: value.statuses?.length || 0,
+        });
+
+        // Handle incoming messages
+        if (value.messages && value.messages.length > 0) {
+          for (const message of value.messages) {
+            const phoneNumber = message.from;
+            const messageText = message.text?.body;
+            const messageId = message.id;
+
+            console.log('[Webhook] Incoming message', {
+              from: phoneNumber.substring(0, 7) + 'X'.repeat(Math.max(0, phoneNumber.length - 7)),
+              messageId,
+              hasText: !!messageText,
+              messageType: message.type,
+            });
+
+            if (messageText && phoneNumber && messageId) {
+              // Normalize phone number: add + prefix if missing
+              const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+
+              // Process message asynchronously
+              void processMessageAsync(normalizedPhone, messageText, messageId).catch((error) => {
+                console.error('CRITICAL: Unhandled error in async message processing', {
+                  phoneNumber: normalizedPhone.substring(0, 7) + 'X'.repeat(Math.max(0, normalizedPhone.length - 7)),
+                  messageId,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
+              });
+            }
+          }
+        }
+
+        // Handle status updates (delivery receipts)
+        if (value.statuses && value.statuses.length > 0) {
+          for (const status of value.statuses) {
+            console.log('[Webhook] Status update', {
+              messageId: status.id,
+              status: status.status,
+            });
+
+            void processStatusUpdateAsync(status.id, status.status);
+          }
+        }
+      }
+    }
+
+    // Acknowledge webhook receipt immediately (Meta Cloud API expects JSON)
+    return NextResponse.json({ status: 'ok' }, { status: 200 });
   } catch (error) {
-    console.error('Webhook error:', error);
-
-    // Return empty TwiML even on errors to prevent Twilio retries
-    return new NextResponse('<Response></Response>', {
-      status: 200,
-      headers: { 'Content-Type': 'text/xml' },
+    console.error('[Webhook] Error processing webhook', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
+
+    // Return 200 OK even on errors to prevent Meta retries
+    return NextResponse.json({ status: 'error' }, { status: 200 });
   }
 }
 
@@ -481,8 +560,8 @@ Just ask me to calculate and I'll guide you through it!`;
         }
       }
 
-      // Send WhatsApp reply using WhatsApp service
-      const whatsappService = new WhatsAppService({ supabaseClient: supabase });
+      // Send WhatsApp reply using Meta Cloud API service
+      const whatsappService = new WhatsAppMetaService({ supabaseClient: supabase });
       const sendResult = await whatsappService.sendMessage(
         { phoneNumber, messageText: finalResponseText },
         agentId || undefined
@@ -514,7 +593,7 @@ Just ask me to calculate and I'll guide you through it!`;
 
       // Send fallback error message to user
       try {
-        const whatsappService = new WhatsAppService({ supabaseClient: supabase });
+        const whatsappService = new WhatsAppMetaService({ supabaseClient: supabase });
         const fallbackMessage = "I'm having trouble processing your request right now. Please try again in a moment.";
 
         await whatsappService.sendMessage(

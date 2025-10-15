@@ -313,13 +313,52 @@ Once I have this information, I'll generate the registration document for you!
 ### Available Registration Types (11 total)
 - **Standard Seller Registration** (01) - Regular property registrations
 - **Seller with Marketing Agreement** (02) - Riskier cases with marketing terms
-- **Rental Property Registration** (03) - Landlord/tenant registrations
+- **Rental Property Registration** (03) - Landlord/tenant registrations (tenancy)
 - **Advanced Seller Registration** (04) - Multiple properties/special terms
 - **Bank Property Registration** (05) - Bank-owned properties (REMU, Gordian, etc.)
 - **Bank Land Registration** (06) - Bank-owned land (requires viewing form)
 - **Developer Registration - Viewing** (07) - With scheduled viewing
 - **Developer Registration - No Viewing** (08) - Without viewing scheduled
 - **Multiple Sellers Clause** (09) - Add-on for co-owners
+
+### Registration Greeting Formats (Updated 2025-10-13)
+
+**Standard Seller & Marketing:**
+- Greeting: `Dear [SELLER_NAME], (Seller)`
+- Always ask for seller name
+
+**Rental Property (Silent Logic):**
+- **Default**: `Dear XXXXXXXX,` (NEVER ask for landlord name)
+- **If provided**: `Dear [LANDLORD_NAME], (landlord)` (only if user mentions it)
+- **CRITICAL**: Sophia NEVER explains this logic to user
+- **Keywords**: "rental", "tenancy", "letting" all trigger rental registration
+
+**Bank Property:**
+- Greeting: `Dear [BANK_NAME] Team,` (e.g., "Dear Remu Team,")
+- Auto-detected from property URL (remuproperties.com → Remu, gordian → Gordian, altia → Altia, altamira → Altamira)
+- Mobile label: `(please call me to arrange a viewing)`
+- Client phone masked with space before ** (e.g., `+44 79 ** 83 24 71`)
+
+**Bank Land:**
+- Greeting: `Dear [BANK_NAME] Team,` (e.g., "Dear Remu Team,")
+- Auto-detected from property URL (same as Bank Property)
+- Mobile label: `(please call me for any further information)`
+- Client phone masked WITHOUT space before ** (e.g., `+44 79** 832471`)
+- Includes reminder to attach viewing form
+
+**Developer:**
+- Greeting: `Dear XXXXXXXX,` (placeholder, never ask for developer name)
+
+### Quick Reference: Greeting Summary
+
+| Registration Type | Greeting Format | Notes |
+|-------------------|-----------------|-------|
+| Standard Seller | `Dear [SELLER_NAME], (Seller)` | Always ask for name |
+| Marketing Agreement | `Dear [SELLER_NAME], (Seller)` | Always ask for name |
+| Rental Property | `Dear XXXXXXXX,` or `Dear [LANDLORD_NAME], (landlord)` | NEVER ask; silent logic |
+| Bank Property | `Dear [BANK_NAME] Team,` | Auto-detect from URL |
+| Bank Land | `Dear [BANK_NAME] Team,` | Auto-detect from URL |
+| Developer | `Dear XXXXXXXX,` | Never ask for name |
 
 ### Key Features
 - **Text Recognition**: Accepts both numbers (1, 2, 3) AND text ("seller", "standard", "marketing", etc.)
@@ -346,6 +385,23 @@ Once I have this information, I'll generate the registration document for you!
 - System prompt located in `packages/services/src/openai.service.ts` (lines 10-106)
 - Text recognition works because requests no longer bypass system prompt
 - Template instructions in `Knowledge Base/Sophias Source of Truth/Registeration Forms/reg_final/`
+
+### Property Description Examples (Cyprus Real Estate)
+
+**Rental Properties:**
+- "Reg. No. 0/1789 Tala, Paphos" → "Your Property in Tala, Paphos with Registration No. 0/1789"
+- "Townhouse Sirina Complex Unit No. G6 Potamos Germasogeias, Limassol"
+- "House at Konia, Paphos"
+- "2-bedroom apartment in Larnaca"
+
+**Bank Properties:**
+- URLs from: remuproperties.com, gordian, altia, altamira
+- Example: `https://www.remuproperties.com/Cyprus/listing-29190`
+- Sophia auto-detects bank name from URL
+
+**Standard Seller:**
+- "Reg No. 0/2456 Tala, Paphos"
+- "Your Property in [LOCATION] with Registration No. [NUMBER]"
 
 ## Viewing Forms & Marketing Agreements (Added 2025-10-13)
 
@@ -533,6 +589,8 @@ vercel --prod           # Deploy to production
 - If text recognition not working: Check system prompt in `openai.service.ts` (no delegation should occur)
 - If wrong format: Check system prompt field collection format (lines 59-80)
 - If Assistant errors: Remove any Assistant delegation - system should use OpenAI Service only
+- If Sophia explains rental greeting logic: She should NEVER mention landlord name unless user asks - silent operation only
+- If "tenancy" not recognized: Ensure keyword mapping includes rental/tenancy/letting as equivalents
 
 ### Performance Optimization
 - `packages/services/src/document-optimized.service.ts` - Optimized document generation

@@ -105,10 +105,8 @@ Property Introduced: Your Property in Tala, Paphos with Registration No. 0/2456
 Viewing Arranged for: Saturday 26th September 2025 at 14:30pm
 
 Please confirm Registration and Viewing.
-
 For the confirmation, Could you please reply ''Yes I confirm''
-
-Looking forward to your prompt confirmation.
+Looking forward to your prompt confirmation.
 
 ### Example 2: Partial Information (Progressive Collection)
 **User:** "seller registration"

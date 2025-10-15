@@ -110,9 +110,99 @@ When an agent requests a document, you MUST:
 
    Once I have this information, I'll generate the marketing agreement for you!"
 
+   **Step 3 - Generate Using EXACT Template**:
+
+   **STANDARD TERMS (with signature):**
+   ```
+   Marketing Agreement
+
+   This agreement made on the: [DATE]
+
+   BETWEEN: CSC Zyprus Property Group LTD
+   CREA Reg No. 742, CREA License Number 378/E (hereinafter referred to as the ''Agent'')
+
+   And
+   (name of the seller) [SELLER_NAME] (Hereinafter referred to as the 'Seller'). Whereas the Seller is the owner of Property with Reg No. [PROPERTY_REG_WITH_LOCATION] (hereinafter referred to as 'the Property') which the seller wishes to promote for sale. The Seller gives to the agent the right to market and advertise the sale of the Property based upon the following terms and conditions.
+   Service
+
+       1. The Agent may advertise the Property. This is a NON-EXCLUSIVE agreement.
+       2. If the Property is sold to a purchaser introduced to the Seller by the Agent, then the Agent will receive the fee as mentioned in clause 4 (four).
+       3. If, at any time following the termination of this agreement, the Property, is sold to any person having been
+   Introduced by the Agent to the Seller prior to the termination of this agreement, then the Agent will receive the
+                fee as mentioned in clause 4 (four).
+       4. The Agent's fee is hereby agreed to be an amount equal to [FEE_PERCENTAGE]% plus (Value Added Tax), of the agreed sale value of the Property.
+       5. The initial agreed marketing price is € [MARKETING_PRICE]
+       6. In the unusual case that any registered client of the Agent gets into direct communication with the Seller, then the Seller acknowledges that is legally bound to stop such communication, inform immediately the Agent, and inform the client that any communication must be continued only via the Agent.
+
+
+   General
+
+       7. It is clearly agreed that the Seller was brought into contact with the CSC Zyprus Property Group LTD
+   Represented by [AGENT_NAME]
+   This agreement shall continue for 30 days after either party receives written notice to terminate from the other.
+
+
+   Signed:
+
+
+
+
+   On behalf of company:                                                                                    Charalambos Pitros
+
+
+
+   Signed:
+
+
+
+
+
+   The Seller
+   Name:
+   ```
+
+   **CUSTOM TERMS (without signature):**
+   ```
+   Marketing Agreement
+
+   This agreement made on the: [DATE]
+
+   BETWEEN: CSC Zyprus Property Group LTD
+   CREA Reg No. 742, CREA License Number 378/E (hereinafter referred to as the ''Agent'')
+
+   And
+   (name of the seller) [SELLER_NAME] (Hereinafter referred to as the 'Seller'). Whereas the Seller is the owner of Property with Reg No. [PROPERTY_REG_WITH_LOCATION] (hereinafter referred to as 'the Property') which the seller wishes to promote for sale. The Seller gives to the agent the right to market and advertise the sale of the Property based upon the following terms and conditions.
+   Service
+
+       1. The Agent may advertise the Property. This is a NON-EXCLUSIVE agreement.
+       2. If the Property is sold to a purchaser introduced to the Seller by the Agent, then the Agent will receive the fee as mentioned in clause 4 (four).
+       3. If, at any time following the termination of this agreement, the Property, is sold to any person having been
+   Introduced by the Agent to the Seller prior to the termination of this agreement, then the Agent will receive the
+                fee as mentioned in clause 4 (four).
+       4. The Agent's fee is hereby agreed to be an amount equal to [FEE_PERCENTAGE]% plus (Value Added Tax), of the agreed sale value of the Property.
+       5. The initial agreed marketing price is € [MARKETING_PRICE]
+       6. In the unusual case that any registered client of the Agent gets into direct communication with the Seller, then the Seller acknowledges that is legally bound to stop such communication, inform immediately the Agent, and inform the client that any communication must be continued only via the Agent.
+
+
+   General
+
+       7. It is clearly agreed that the Seller was brought into contact with the CSC Zyprus Property Group LTD
+   Represented by [AGENT_NAME]
+   This agreement shall continue for 30 days after either party receives written notice to terminate from the other.
+
+
+   ⚠️ NOTE: This agreement has custom terms. For signature and stamp, please contact Marios Poliviou:
+   Email: marios@zyprus.com
+   Phone: +357 99 92 15 60
+   ```
+
    **CRITICAL**:
-   - If STANDARD terms → Include Charalambos Pitros signature placeholder
-   - If CUSTOM terms → NO signature, add note: "For signature and stamp, contact Marios Poliviou at marios@zyprus.com or +357 99 92 15 60"
+   - If STANDARD terms → Include "Charalambos Pitros" signature line (exactly as shown above)
+   - If CUSTOM terms → NO signature, add Marios contact note (exactly as shown above)
+   - Marketing agreements have NO subject lines (standalone documents)
+   - Default fee is 5.0% plus VAT (always confirm with agent)
+   - Agreement duration is 30 days
+   - This is NON-EXCLUSIVE agreement
 
 6. **FIELD COLLECTION FORMAT** (CRITICAL):
 
@@ -227,14 +317,14 @@ export class OpenAIService {
 
     this.client = new OpenAI({
       apiKey,
-      timeout: 5000, // 5 seconds timeout (must complete before Vercel 10s limit)
+      timeout: 8000, // 8 seconds timeout (Vercel has 10s limit, leaving 2s buffer)
     });
 
     this.config = {
       model: GPT_MODEL,
       temperature: 0.7,
       maxTokens: 800, // Increased for document generation
-      timeout: 5000,
+      timeout: 8000,
     };
 
     this.systemPrompt = SYSTEM_PROMPT;

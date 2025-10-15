@@ -20,9 +20,8 @@ import {
   getTelegramRateLimiter,
   createLogger,
   getMetricsService,
-  OptimizedDocumentService,
-  EnhancedDocumentService,
-  OpenAIService,
+  getDeepSeekService,
+  DeepSeekService,
 } from '@sophiaai/services';
 import { createClient } from '@supabase/supabase-js';
 
@@ -219,7 +218,7 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
 
         await getTelegramService().sendMessage(
           chatId,
-          `✅ *Registration successful!*\n\nWelcome to Sophia AI, ${firstName}!\n\nYou can now:\n• Get AI-powered assistance\n• Generate documents\n• Use calculators\n• Forward messages to WhatsApp\n\nJust send me a message and I'll help you! 🚀`,
+          `✅ *Registration successful!*\n\nWelcome to Sophia AI, ${firstName}!\n\nYou can now:\n• Chat with me naturally about Cyprus real estate\n• Get help with property valuations and market info\n• Forward messages to WhatsApp when needed\n• Ask questions about real estate procedures\n\nJust send me a message and I'll help you! 🚀`,
           { parse_mode: 'Markdown' }
         );
 
@@ -311,8 +310,7 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
       return;
     }
 
-    // Story 6.4: Generate AI responses with optimized service
-
+    // Story 6.4: Natural Conversation AI with DeepSeek
     // Log incoming message
     await logConversation({
       agentId: telegramUser.agent_id,
@@ -323,199 +321,29 @@ export async function processUpdate(update: TelegramUpdate): Promise<void> {
       telegramMessageId: message.message_id,
     });
 
-    // Check if this is a document generation request
-    const isDocumentRequest = detectDocumentRequest(text);
-
     const aiStartTime = Date.now();
-    let aiResponse: string;
-    let aiDuration: number;
 
-    if (isDocumentRequest) {
-      // Check if this is a continuation of a flow session
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+    // Use DeepSeek service for natural conversation
+    logger.info('Using DeepSeek service for natural conversation', {
+      agentId: telegramUser.agent_id,
+      message: text.substring(0, 50) + '...'
+    });
 
-      const { data: existingSession } = await supabase
-        .from('document_request_sessions')
-        .select('*')
-        .eq('id', message.message_id.toString())
-        .single();
+    const deepSeekService = getDeepSeekService();
+    const response = await deepSeekService.generateResponse(text, {
+      agentName: firstName,
+      messageHistory: [] // TODO: Load conversation history for context
+    });
 
-      // Check if message contains enhanced template patterns (declare at top level)
-      const hasFlowKeywords = /registration|register|seller|owner|property|developer|bank/i.test(text);
+    const aiResponse = response.text;
+    const aiDuration = Date.now() - aiStartTime;
 
-      let documentResponse;
-
-      if (existingSession) {
-        // Continue existing flow with enhanced service
-        logger.info('Continuing flow session with EnhancedDocumentService', {
-          agentId: telegramUser.agent_id,
-          sessionId: message.message_id.toString()
-        });
-
-        const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
-
-        documentResponse = await enhancedService.generateDocument({
-          message: text,
-          agentId: telegramUser.agent_id,
-          sessionId: message.message_id.toString(),
-          context: { platform: 'telegram', chatId: chatId.toString() },
-          previousStep: existingSession.last_prompt,
-          collectedFields: existingSession.collected_fields
-        });
-
-        // Update session if it's a question response
-        if (documentResponse.type === 'question') {
-          await supabase
-            .from('document_request_sessions')
-            .update({
-              collected_fields: { ...existingSession.collected_fields, ...documentResponse.collectedFields },
-              missing_fields: documentResponse.missingFields || [],
-              last_prompt: documentResponse.nextStep || existingSession.last_prompt,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', message.message_id.toString());
-        }
-      } else {
-        if (hasFlowKeywords) {
-          // Use enhanced service for flows
-          logger.info('Using EnhancedDocumentService for flow-based generation', {
-            agentId: telegramUser.agent_id,
-            message: text.substring(0, 50) + '...'
-          });
-
-          const enhancedService = new EnhancedDocumentService(process.env.OPENAI_API_KEY!);
-
-          documentResponse = await enhancedService.generateDocument({
-            message: text,
-            agentId: telegramUser.agent_id,
-            sessionId: message.message_id.toString(),
-            context: { platform: 'telegram', chatId: chatId.toString() }
-          });
-
-          // Create session if it's a question
-          if (documentResponse.type === 'question' && documentResponse.templateId) {
-            await supabase
-              .from('document_request_sessions')
-              .insert({
-                id: message.message_id.toString(),
-                agent_id: telegramUser.agent_id,
-                document_template_id: documentResponse.templateId,
-                collected_fields: documentResponse.collectedFields || {},
-                missing_fields: documentResponse.missingFields || [],
-                status: 'collecting',
-                last_prompt: documentResponse.nextStep || 'category',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-          }
-        } else {
-          // Use legacy optimized service for simple documents
-          logger.info('Using OptimizedDocumentService for simple document generation', {
-            agentId: telegramUser.agent_id,
-            message: text.substring(0, 50) + '...'
-          });
-
-          const optimizedService = new OptimizedDocumentService(
-            process.env.OPENAI_API_KEY!,
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
-
-          const legacyResponse = await optimizedService.generateDocument({
-            message: text,
-            agentId: telegramUser.agent_id,
-            sessionId: message.message_id.toString(),
-            context: { platform: 'telegram', chatId: chatId.toString() }
-          });
-
-          documentResponse = {
-            type: 'document',
-            content: legacyResponse.content,
-            templateId: legacyResponse.templateId,
-            templateName: legacyResponse.templateName,
-            processingTime: legacyResponse.processingTime,
-            tokensUsed: legacyResponse.tokensUsed,
-            confidence: legacyResponse.confidence
-          };
-        }
-      }
-
-      // Set AI response based on type
-      aiResponse = documentResponse.content;
-      aiDuration = Date.now() - aiStartTime;
-
-      // Update session if document is complete
-      if (documentResponse.type === 'document' && existingSession) {
-        await supabase
-          .from('document_request_sessions')
-          .update({ status: 'complete', updated_at: new Date().toISOString() })
-          .eq('id', message.message_id.toString());
-      }
-
-      logger.info('Document generation completed', {
-        agentId: telegramUser.agent_id,
-        type: documentResponse.type,
-        templateId: documentResponse.templateId,
-        processingTime: documentResponse.metadata?.processingTime || 0,
-        tokensUsed: documentResponse.metadata?.tokensUsed || 0,
-        confidence: documentResponse.metadata?.confidence || 0
-      });
-
-      // Log document generation to database
-      if (documentResponse.type === 'document') {
-        try {
-          await supabase.from('optimized_document_generations').insert({
-            agent_id: telegramUser.agent_id,
-            template_id: documentResponse.templateId,
-            template_name: documentResponse.templateName,
-            category: documentResponse.metadata?.category || 'document',
-            processing_time_ms: documentResponse.metadata?.processingTime || 0,
-            tokens_used: documentResponse.metadata?.tokensUsed || 0,
-            confidence: documentResponse.metadata?.confidence || 0.95,
-            original_request: text,
-            generated_content: documentResponse.content,
-            session_id: message.message_id.toString(),
-            success: true,
-            metadata: {
-              response_type: documentResponse.type,
-              enhanced_service: !!existingSession || hasFlowKeywords,
-              platform: 'telegram',
-              flow_completed: existingSession ? true : false
-            },
-            created_at: new Date().toISOString()
-          });
-
-          logger.info('Document generation logged successfully', {
-            agentId: telegramUser.agent_id,
-            templateId: documentResponse.templateId
-          });
-        } catch (logError) {
-          logger.error('Failed to log optimized document generation', {
-            agentId: telegramUser.agent_id,
-            error: logError instanceof Error ? logError.message : 'Unknown error'
-          });
-        }
-      }
-
-    } else {
-      // Use regular OpenAI service for chat (faster than AssistantService)
-      logger.info('Using OpenAIService for chat response', {
-        agentId: telegramUser.agent_id,
-        message: text.substring(0, 50) + '...'
-      });
-
-      const openaiService = new OpenAIService();
-      const response = await openaiService.generateResponse(text, {
-        agentId: telegramUser.agent_id,
-        messageHistory: [] // TODO: Load conversation history for context
-      });
-
-      aiResponse = response.text;
-      aiDuration = Date.now() - aiStartTime;
-    }
+    logger.info('DeepSeek response generated', {
+      agentId: telegramUser.agent_id,
+      responseTime: response.responseTime,
+      tokensUsed: response.tokensUsed.total,
+      messageLength: aiResponse.length,
+    });
     logger.trackPerformance('ai_response_generation', aiDuration, {
       userId: userId.toString(),
       agentId: telegramUser.agent_id,
