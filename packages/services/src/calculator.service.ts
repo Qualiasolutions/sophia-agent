@@ -219,87 +219,131 @@ export function calculateCapitalGainsTax(inputs: Record<string, any>): Calculato
  *
  * Calculation Rules:
  * - Standard VAT Rate: 19%
- * - Reduced VAT Rate (5%): First 200m² for first home
+ * - Reduced VAT Rate (5%): First 200m² for first home (before Nov 1, 2023)
+ * - NEW Policy (from Nov 1, 2023): Reduced rate applies to properties up to €350,000
  * - Further reduced for persons with disabilities or large families
- * - Based on buildable area and property price
+ * - Based on buildable area, property price, and planning application date
  */
 export function calculateVAT(inputs: Record<string, any>): CalculatorExecutionResult {
   const startTime = Date.now();
 
   try {
-    const propertyValue = parseFloat(inputs.property_value);
-    const propertyType = inputs.property_type; // 'house' or 'apartment'
-    const buildableArea = parseFloat(inputs.buildable_area || '0');
-    const isFirstHome = inputs.is_first_home === true || inputs.is_first_home === 'true';
-    const hasDisability = inputs.has_disability === true || inputs.has_disability === 'true';
-    const isLargeFamily = inputs.is_large_family === true || inputs.is_large_family === 'true';
+    const buildableArea = parseFloat(inputs.buildable_area);
+    const propertyValue = parseFloat(inputs.price);
 
-    if (isNaN(propertyValue) || propertyValue <= 0) {
+    // Parse planning application date (DD/MM/YYYY format)
+    const planningApplicationDateStr = inputs.planning_application_date;
+    if (!planningApplicationDateStr) {
       return {
         success: false,
         calculator_name: 'vat_calculator',
         inputs,
         error: {
           code: 'INVALID_INPUT',
-          message: 'Property value must be a positive number',
+          message: 'Planning application date is required (DD/MM/YYYY format)',
         },
         execution_time_ms: Date.now() - startTime,
       };
     }
 
-    if (!['house', 'apartment'].includes(propertyType)) {
+    // Parse DD/MM/YYYY to Date object
+    const dateParts = planningApplicationDateStr.split('/');
+    if (dateParts.length !== 3) {
       return {
         success: false,
         calculator_name: 'vat_calculator',
         inputs,
         error: {
           code: 'INVALID_INPUT',
-          message: 'Property type must be "house" or "apartment"',
+          message: 'Date must be in DD/MM/YYYY format',
         },
         execution_time_ms: Date.now() - startTime,
       };
     }
 
-    let vatRate = 0.19; // Standard 19%
-    let reducedRateArea = 0;
-    let standardRateArea = buildableArea;
+    const day = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]);
+    const year = parseInt(dateParts[2]);
+    const planningApplicationDate = new Date(year, month - 1, day);
 
-    // Check for reduced rate eligibility (first home, first 200m²)
-    if (isFirstHome && buildableArea > 0) {
-      reducedRateArea = Math.min(buildableArea, 200);
-      standardRateArea = Math.max(0, buildableArea - 200);
+    if (isNaN(buildableArea) || buildableArea <= 0 || isNaN(propertyValue) || propertyValue <= 0) {
+      return {
+        success: false,
+        calculator_name: 'vat_calculator',
+        inputs,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Buildable area and price must be positive numbers',
+        },
+        execution_time_ms: Date.now() - startTime,
+      };
+    }
 
-      // Further reductions for special cases
-      if (hasDisability) {
-        vatRate = 0.05; // 5% for entire property
-        reducedRateArea = buildableArea;
-        standardRateArea = 0;
-      } else if (isLargeFamily) {
-        // Extended reduced rate area for large families
-        reducedRateArea = Math.min(buildableArea, 250);
-        standardRateArea = Math.max(0, buildableArea - 250);
+    // Check if invalid date
+    if (isNaN(planningApplicationDate.getTime())) {
+      return {
+        success: false,
+        calculator_name: 'vat_calculator',
+        inputs,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Invalid date provided',
+        },
+        execution_time_ms: Date.now() - startTime,
+      };
+    }
+
+    // Policy cutoff date: November 1, 2023
+    const policyCutoffDate = new Date(2023, 10, 1); // Month is 0-indexed
+    const isNewPolicy = planningApplicationDate >= policyCutoffDate;
+
+    let totalVAT: number;
+    let breakdown: string[] = [];
+
+    if (isNewPolicy) {
+      // NEW POLICY (from Nov 1, 2023)
+      // Reduced 5% rate applies to properties up to €350,000
+      if (propertyValue <= 350000) {
+        totalVAT = propertyValue * 0.05;
+        breakdown.push(`Property value (€${propertyValue.toLocaleString()}) is under €350,000 limit`);
+        breakdown.push(`VAT Rate: 5% (reduced rate under new policy)`);
+        breakdown.push(`VAT Amount: €${totalVAT.toLocaleString()}`);
+      } else {
+        totalVAT = propertyValue * 0.19;
+        breakdown.push(`Property value (€${propertyValue.toLocaleString()}) exceeds €350,000 limit`);
+        breakdown.push(`VAT Rate: 19% (standard rate under new policy)`);
+        breakdown.push(`VAT Amount: €${totalVAT.toLocaleString()}`);
+      }
+    } else {
+      // OLD POLICY (before Nov 1, 2023)
+      // Reduced 5% rate for first 200m² of first home
+      const reducedRateArea = Math.min(buildableArea, 200);
+      const standardRateArea = Math.max(0, buildableArea - 200);
+
+      if (buildableArea <= 200) {
+        // Entire property at reduced rate
+        totalVAT = propertyValue * 0.05;
+        breakdown.push(`Buildable area (${buildableArea}m²) is within 200m² limit`);
+        breakdown.push(`VAT Rate: 5% (reduced rate under old policy)`);
+        breakdown.push(`VAT Amount: €${totalVAT.toLocaleString()}`);
+      } else {
+        // Mixed rate calculation
+        const pricePerSqm = propertyValue / buildableArea;
+        const reducedRateValue = reducedRateArea * pricePerSqm;
+        const standardRateValue = standardRateArea * pricePerSqm;
+
+        const reducedVAT = reducedRateValue * 0.05;
+        const standardVAT = standardRateValue * 0.19;
+        totalVAT = reducedVAT + standardVAT;
+
+        breakdown.push(`First 200m² at 5%: ${reducedRateArea}m² × €${pricePerSqm.toFixed(2)}/m² = €${reducedVAT.toLocaleString()}`);
+        breakdown.push(`Remaining area at 19%: ${standardRateArea}m² × €${pricePerSqm.toFixed(2)}/m² = €${standardVAT.toLocaleString()}`);
+        breakdown.push(`Total VAT: €${totalVAT.toLocaleString()}`);
       }
     }
 
-    // Calculate VAT
-    let totalVAT: number;
-
-    if (buildableArea > 0) {
-      // Calculate based on area proportions
-      const pricePerSqm = propertyValue / buildableArea;
-      const reducedRateValue = reducedRateArea * pricePerSqm;
-      const standardRateValue = standardRateArea * pricePerSqm;
-
-      const reducedVAT = reducedRateValue * 0.05;
-      const standardVAT = standardRateValue * 0.19;
-
-      totalVAT = reducedVAT + standardVAT;
-    } else {
-      // No buildable area provided, use standard rate on full value
-      totalVAT = propertyValue * vatRate;
-    }
-
-    const formattedOutput = `💵 VAT Calculation (${propertyType === 'house' ? 'House' : 'Apartment'})\n\nProperty Details:\n- Property Value: €${propertyValue.toLocaleString()}\n- Buildable Area: ${buildableArea}m²\n- First Home: ${isFirstHome ? 'Yes' : 'No'}\n${hasDisability ? '- Person with Disability: Yes\n' : ''}${isLargeFamily ? '- Large Family: Yes\n' : ''}\n\nVAT Breakdown:\n${reducedRateArea > 0 ? `- Area at 5% VAT: ${reducedRateArea}m² = €${(reducedRateArea * (propertyValue / buildableArea) * 0.05).toLocaleString()}\n` : ''}${standardRateArea > 0 ? `- Area at 19% VAT: ${standardRateArea}m² = €${(standardRateArea * (propertyValue / buildableArea) * 0.19).toLocaleString()}\n` : ''}\n📊 Total VAT: €${totalVAT.toLocaleString()}\n\nNote: VAT applies to new builds only. Resale properties are exempt from VAT but pay transfer fees.`;
+    const policyType = isNewPolicy ? 'New Policy (from Nov 1, 2023)' : 'Old Policy (before Nov 1, 2023)';
+    const formattedOutput = `💵 VAT Calculation\n\nProperty Details:\n- Buildable Area: ${buildableArea}m²\n- Price: €${propertyValue.toLocaleString()}\n- Planning Application Date: ${planningApplicationDateStr}\n- Applied Policy: ${policyType}\n\nCalculation Breakdown:\n${breakdown.map(line => `• ${line}`).join('\n')}\n\n📊 Total VAT: €${totalVAT.toLocaleString()}\n\nNote: This calculation is for new builds only. Resale properties are exempt from VAT but pay transfer fees. Policy effective from planning application date.`;
 
     return {
       success: true,
@@ -308,13 +352,12 @@ export function calculateVAT(inputs: Record<string, any>): CalculatorExecutionRe
       result: {
         summary: `€${totalVAT.toLocaleString()}`,
         details: {
-          property_value: propertyValue,
-          property_type: propertyType,
           buildable_area: buildableArea,
-          is_first_home: isFirstHome,
-          reduced_rate_area: reducedRateArea,
-          standard_rate_area: standardRateArea,
+          price: propertyValue,
+          planning_application_date: planningApplicationDateStr,
+          is_new_policy: isNewPolicy,
           total_vat: totalVAT,
+          breakdown,
         },
         formatted_output: formattedOutput,
       },

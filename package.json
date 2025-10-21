@@ -19,5 +19,9 @@
   "devDependencies": {
     "supergateway": "^3.4.0",
     "turbo": "^2.3.3"
+  },
+  "dependencies": {
+    "docx4js": "^3.3.0",
+    "jszip": "^3.10.1"
   }
 }

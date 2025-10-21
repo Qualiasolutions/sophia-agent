@@ -67,7 +67,7 @@ export class TelegramAuthService {
       .from('agents')
       .select('id, email')
       .eq('email', email.toLowerCase().trim())
-      .eq('status', 'active')
+      .eq('is_active', true)
       .single();
 
     if (error && error.code !== 'PGRST116') {

@@ -4,19 +4,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { EnhancedDocumentService } from '@sophiaai/services';
+import { tryCreateAdminClient } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = tryCreateAdminClient();
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Session API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { sessionId } = await params;
 
-    const { data: session, error } = await supabase
+    const { data: session, error } = await supabaseClient
       .from('document_request_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -30,7 +37,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // Get template details
-    const { data: template } = await supabase
+    const { data: template } = await supabaseClient
       .from('enhanced_templates')
       .select('name, category, flow, fields')
       .eq('template_id', session.document_template_id)
@@ -52,6 +59,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Session API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { sessionId } = await params;
     const body = await request.json();
     const { message } = body;
@@ -64,7 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Get session
-    const { data: session, error: fetchError } = await supabase
+    const { data: session, error: fetchError } = await supabaseClient
       .from('document_request_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -90,7 +107,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     // Update session
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       collected_fields: { ...session.collected_fields, ...response.collectedFields },
       missing_fields: response.missingFields || [],
       updated_at: new Date().toISOString()
@@ -103,7 +120,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       updateData.status = 'complete';
     }
 
-    const { data: updatedSession, error: updateError } = await supabase
+    const { data: updatedSession, error: updateError } = await supabaseClient
       .from('document_request_sessions')
       .update(updateData)
       .eq('id', sessionId)
@@ -142,9 +159,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Session API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { sessionId } = await params;
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('document_request_sessions')
       .delete()
       .eq('id', sessionId);

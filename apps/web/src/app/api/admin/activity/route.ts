@@ -6,14 +6,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
+import { tryCreateAdminClient } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = tryCreateAdminClient();
 
 interface Activity {
   id: string;
@@ -25,6 +22,14 @@ interface Activity {
 
 export async function GET(request: NextRequest) {
   try {
+    if (!supabase) {
+      console.error('[Activity API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Check authentication
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 

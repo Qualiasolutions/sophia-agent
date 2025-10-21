@@ -7,8 +7,16 @@
 
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 
-const ADMIN_ACCESS_CODE = '123123';
+const ADMIN_ACCESS_CODE_HASH = process.env.ADMIN_ACCESS_CODE_HASH;
+const ADMIN_ACCESS_CODE_FALLBACK = process.env.ADMIN_ACCESS_CODE;
+
+if (!ADMIN_ACCESS_CODE_HASH && !ADMIN_ACCESS_CODE_FALLBACK) {
+  console.warn(
+    '[Auth] ADMIN_ACCESS_CODE_HASH (or ADMIN_ACCESS_CODE for local overrides) is not configured. Admin login will be disabled.'
+  );
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -22,18 +30,42 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Verify access code
-        if (credentials.accessCode === ADMIN_ACCESS_CODE) {
-          // Return generic admin user object
-          return {
-            id: 'admin',
-            email: 'admin@qualiasolutions.com',
-            name: 'Qualia AI Agents Suite™ Admin',
-            role: 'admin',
-          };
+        const providedCode = credentials.accessCode.trim();
+
+        if (!ADMIN_ACCESS_CODE_HASH && !ADMIN_ACCESS_CODE_FALLBACK) {
+          console.error('[Auth] Admin access attempted without configured secret');
+          return null;
         }
 
-        return null;
+        if (ADMIN_ACCESS_CODE_HASH) {
+          const matches = await bcrypt.compare(providedCode, ADMIN_ACCESS_CODE_HASH);
+          if (!matches) {
+            return null;
+          }
+        } else if (ADMIN_ACCESS_CODE_FALLBACK) {
+          if (process.env.NODE_ENV === 'production') {
+            console.error(
+              '[Auth] ADMIN_ACCESS_CODE fallback rejected in production. Configure ADMIN_ACCESS_CODE_HASH instead.'
+            );
+            return null;
+          }
+
+          if (providedCode !== ADMIN_ACCESS_CODE_FALLBACK) {
+            return null;
+          }
+
+          console.warn(
+            '[Auth] Using ADMIN_ACCESS_CODE fallback. Configure ADMIN_ACCESS_CODE_HASH for secure deployments.'
+          );
+        }
+
+        // Verify access code
+        return {
+          id: 'admin',
+          email: 'admin@qualiasolutions.com',
+          name: 'Qualia AI Agents Suite™ Admin',
+          role: 'admin',
+        };
       },
     }),
   ],

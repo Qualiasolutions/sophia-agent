@@ -75,3 +75,19 @@ export function createAdminClient() {
     },
   });
 }
+
+/**
+ * Attempts to create a Supabase admin client without throwing if configuration is missing.
+ * Useful for build-time imports where environment variables might not be set.
+ */
+export function tryCreateAdminClient() {
+  try {
+    return createAdminClient();
+  } catch (error) {
+    console.warn(
+      '[Supabase] Admin client unavailable. Check environment configuration if this occurs outside local builds.',
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  }
+}

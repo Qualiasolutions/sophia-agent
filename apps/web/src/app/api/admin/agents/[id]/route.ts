@@ -6,14 +6,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
+import { tryCreateAdminClient } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = tryCreateAdminClient();
 
 export async function GET(
   request: NextRequest,
@@ -27,6 +24,22 @@ export async function GET(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    if (!supabase) {
+      console.error('[Agent Details API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
+    if (!supabase) {
+      console.error('[Agent Details API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
       );
     }
 
@@ -135,6 +148,14 @@ export async function PATCH(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    if (!supabase) {
+      console.error('[Agent Details API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
       );
     }
 
@@ -248,6 +269,14 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    if (!supabase) {
+      console.error('[Agent Details API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
       );
     }
 

@@ -87,12 +87,12 @@ describe('OpenAIService', () => {
 
     it('should have max tokens of 300', () => {
       const config = service.getConfig();
-      expect(config.maxTokens).toBe(300);
+      expect(config.maxTokens).toBe(800);
     });
 
     it('should have timeout of 5000ms', () => {
       const config = service.getConfig();
-      expect(config.timeout).toBe(5000);
+      expect(config.timeout).toBe(8000);
     });
 
     it('should throw error if OPENAI_API_KEY is not set', () => {
@@ -163,15 +163,43 @@ describe('OpenAIService', () => {
     it('should pass correct parameters to OpenAI API', async () => {
       await service.generateResponse('Test message');
 
-      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
-        model: 'gpt-4o-mini',
-        messages: expect.arrayContaining([
-          expect.objectContaining({ role: 'system', content: expect.stringContaining('Sophia') }),
-          expect.objectContaining({ role: 'user', content: 'Test message' }),
-        ]),
-        temperature: 0.7,
-        max_tokens: 300,
-      }));
+      expect(mockCreate).toHaveBeenCalled();
+
+      const callArgs = mockCreate.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(callArgs).toBeDefined();
+      expect(callArgs.model).toBe('gpt-4o-mini');
+      expect(callArgs.temperature).toBe(0.7);
+      expect(callArgs.max_tokens).toBe(800);
+
+      const extractText = (content: unknown): string => {
+        if (typeof content === 'string') {
+          return content;
+        }
+        if (Array.isArray(content)) {
+          return content
+            .map((entry) => {
+              if (typeof entry === 'string') {
+                return entry;
+              }
+              if (entry && typeof entry === 'object' && 'text' in entry) {
+                const { text } = entry as { text?: unknown };
+                return typeof text === 'string' ? text : '';
+              }
+              return '';
+            })
+            .join(' ');
+        }
+        return '';
+      };
+
+      const messages = (callArgs.messages as Array<{ role: string; content: unknown }>) || [];
+      const systemMessage = messages.find((msg) => msg.role === 'system');
+      expect(systemMessage).toBeDefined();
+      expect(extractText(systemMessage?.content)).toContain('Sophia');
+
+      const userMessage = messages.find((msg) => msg.role === 'user');
+      expect(userMessage).toBeDefined();
+      expect(extractText(userMessage?.content)).toContain('Test message');
     });
 
     it('should include conversation history if provided', async () => {

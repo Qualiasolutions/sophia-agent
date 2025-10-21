@@ -15,6 +15,7 @@ import {
   CalculatorIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
+  BeakerIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Templates', href: '/admin/templates', icon: DocumentTextIcon },
   { name: 'Calculators', href: '/admin/calculators', icon: CalculatorIcon },
   { name: 'Logs', href: '/admin/logs', icon: ClipboardDocumentListIcon },
+  { name: 'Testing Lab', href: '/admin/testing', icon: BeakerIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
 ];
 

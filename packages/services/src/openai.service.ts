@@ -235,37 +235,24 @@ export class OpenAIService {
           type: 'function',
           function: {
             name: 'calculate_vat',
-            description: 'Calculate VAT for houses and apartments in Cyprus (not for land or commercial). Standard rate is 19%, reduced rate of 5% for first 200m² of first homes.',
+            description: 'Calculate VAT for houses and apartments in Cyprus based on planning application date. New policy (from Nov 1, 2023): 5% rate for properties up to €350,000. Old policy: 5% rate for first 200m² of first homes. Standard rate is 19%.',
             parameters: {
               type: 'object',
               properties: {
-                property_value: {
-                  type: 'number',
-                  description: 'Property value in Euros',
-                },
-                property_type: {
-                  type: 'string',
-                  description: 'Type of property',
-                  enum: ['house', 'apartment'],
-                },
                 buildable_area: {
                   type: 'number',
-                  description: 'Optional: Buildable area in square meters',
+                  description: 'Buildable area in square meters (ΔΟΜΗΣΙΜΟ ΕΜΒΑΔΟΝ)',
                 },
-                is_first_home: {
-                  type: 'boolean',
-                  description: 'Whether this is the buyer\'s first home (enables reduced rate)',
+                price: {
+                  type: 'number',
+                  description: 'Property price in Euros (ΤΙΜΗ)',
                 },
-                has_disability: {
-                  type: 'boolean',
-                  description: 'Optional: Whether buyer has a disability (further rate reduction)',
-                },
-                is_large_family: {
-                  type: 'boolean',
-                  description: 'Optional: Whether buyer has a large family (extended reduced rate area)',
+                planning_application_date: {
+                  type: 'string',
+                  description: 'Planning application date in DD/MM/YYYY format (Ημερομηνία υποβολής αίτησης για πολεοδομική άδεια)',
                 },
               },
-              required: ['property_value', 'property_type'],
+              required: ['buildable_area', 'price', 'planning_application_date'],
             },
           },
         },

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient, createAdminClient } from '../supabase';
 
 describe('Supabase Client', () => {
@@ -9,7 +9,7 @@ describe('Supabase Client', () => {
     // Reset environment variables before each test
     process.env = { ...originalEnv };
     // Mock server-side environment (no window object)
-    // @ts-ignore
+    // @ts-expect-error testing server-side behavior without window
     delete global.window;
   });
 

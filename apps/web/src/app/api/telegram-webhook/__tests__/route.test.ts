@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Telegram Webhook Endpoint Tests
  * Stories 6.1-6.4: Telegram Integration
@@ -24,6 +25,10 @@ const mockMessageForwardService = {
   forwardToWhatsApp: vi.fn(),
 };
 
+const mockDeepSeekService = {
+  generateResponse: vi.fn(),
+};
+
 // Mock services
 vi.mock('@sophiaai/services', () => ({
   getTelegramService: vi.fn(() => mockTelegramService),
@@ -39,9 +44,7 @@ vi.mock('@sophiaai/services', () => ({
     parseForwardCommand: vi.fn(),
     validatePhoneNumber: vi.fn(() => true),
   },
-  getAssistantService: vi.fn(() => ({
-    generateDocument: vi.fn(),
-  })),
+  getDeepSeekService: vi.fn(() => mockDeepSeekService),
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -96,7 +99,9 @@ describe('Telegram Webhook Endpoint', () => {
         }),
       },
       json: vi.fn(),
-    } as any;
+    } as unknown as NextRequest;
+
+    mockDeepSeekService.generateResponse.mockReset();
   });
 
   describe('GET', () => {
@@ -271,19 +276,7 @@ describe('Telegram Webhook Endpoint', () => {
 
   describe('POST - AI Conversation', () => {
     it('should process AI conversation for registered user', async () => {
-      const {
-        TelegramService,
-        
-        MessageForwardService,
-        getAssistantService,
-        
-      } = await import('@sophiaai/services');
-
-      const mockAssistant = {
-        generateDocument: vi.fn().mockResolvedValueOnce({
-          text: 'AI response here',
-        }),
-      };
+      const { TelegramService, MessageForwardService, getDeepSeekService } = await import('@sophiaai/services');
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
       (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
@@ -294,7 +287,13 @@ describe('Telegram Webhook Endpoint', () => {
       (MessageForwardService.parseForwardCommand as any).mockReturnValueOnce({
         isForwardCommand: false,
       });
-      (getAssistantService as any).mockReturnValueOnce(mockAssistant);
+      (getDeepSeekService as any).mockReturnValueOnce(mockDeepSeekService);
+
+      mockDeepSeekService.generateResponse.mockResolvedValueOnce({
+        text: 'AI response here',
+        tokensUsed: { prompt: 5, completion: 5, total: 10 },
+        responseTime: 10,
+      });
 
       (mockRequest.json as any).mockResolvedValueOnce({
         update_id: 126,
@@ -312,10 +311,11 @@ describe('Telegram Webhook Endpoint', () => {
       // Allow async processing to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockAssistant.generateDocument).toHaveBeenCalledWith(
-        'agent-456',
+      expect(mockDeepSeekService.generateResponse).toHaveBeenCalledWith(
         'What is my schedule today?',
-        []
+        expect.objectContaining({
+          messageHistory: [],
+        })
       );
 
       expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
@@ -341,17 +341,10 @@ describe('Telegram Webhook Endpoint', () => {
     });
 
     it('should send error message to user on processing failure', async () => {
-      const {
-        TelegramService,
-        
-        MessageForwardService,
-        getAssistantService,
-        
-      } = await import('@sophiaai/services');
+      const { TelegramService, MessageForwardService, getDeepSeekService } = await import('@sophiaai/services');
 
-      const mockAssistant = {
-        generateDocument: vi.fn().mockRejectedValueOnce(new Error('AI service error')),
-      };
+      (getDeepSeekService as any).mockReturnValueOnce(mockDeepSeekService);
+      mockDeepSeekService.generateResponse.mockRejectedValueOnce(new Error('AI service error'));
 
       (TelegramService.validateWebhookSignature as any).mockReturnValueOnce(true);
       (mockTelegramAuthService.isUserRegistered as any).mockResolvedValueOnce(true);
@@ -362,8 +355,6 @@ describe('Telegram Webhook Endpoint', () => {
       (MessageForwardService.parseForwardCommand as any).mockReturnValueOnce({
         isForwardCommand: false,
       });
-      (getAssistantService as any).mockReturnValueOnce(mockAssistant);
-
       (mockRequest.json as any).mockResolvedValueOnce({
         update_id: 127,
         message: {
@@ -382,8 +373,8 @@ describe('Telegram Webhook Endpoint', () => {
 
       expect(mockTelegramService.sendMessage).toHaveBeenCalledWith(
         789,
-        expect.stringContaining('error occurred'),
-        expect.any(Object)
+        '❌ An error occurred processing your message. Please try again later.',
+        { parse_mode: 'Markdown' }
       );
     });
   });

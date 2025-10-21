@@ -4,23 +4,29 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { EnhancedDocumentService } from '@sophiaai/services';
+import { tryCreateAdminClient } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = tryCreateAdminClient();
 
 export async function GET(request: NextRequest) {
   try {
+    const supabaseClient = supabase;
+    if (!supabaseClient) {
+      console.error('[Document Sessions API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
     const agentId = searchParams.get('agentId');
 
     if (sessionId) {
       // Get specific session
-      const { data: session, error } = await supabase
+      const { data: session, error } = await supabaseClient
         .from('document_request_sessions')
         .select('*')
         .eq('id', sessionId)
@@ -38,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (agentId) {
       // Get all sessions for agent
-      const { data: sessions, error } = await supabase
+      const { data: sessions, error } = await supabaseClient
         .from('document_request_sessions')
         .select('*')
         .eq('agent_id', agentId)
@@ -71,6 +77,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Sessions API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { agentId, templateId, message } = body;
 
@@ -94,7 +110,7 @@ export async function POST(request: NextRequest) {
     if (response.type === 'question' && response.templateId) {
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await supabaseClient
         .from('document_request_sessions')
         .insert({
           id: sessionId,
@@ -154,6 +170,16 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Sessions API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { sessionId, message, collectedFields } = body;
 
@@ -165,7 +191,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get existing session
-    const { data: session, error: fetchError } = await supabase
+    const { data: session, error: fetchError } = await supabaseClient
       .from('document_request_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -191,7 +217,7 @@ export async function PUT(request: NextRequest) {
     });
 
     // Update session
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       collected_fields: { ...session.collected_fields, ...response.collectedFields },
       missing_fields: response.missingFields || [],
       updated_at: new Date().toISOString()
@@ -204,7 +230,7 @@ export async function PUT(request: NextRequest) {
       updateData.status = 'complete';
     }
 
-    const { data: updatedSession, error: updateError } = await supabase
+    const { data: updatedSession, error: updateError } = await supabaseClient
       .from('document_request_sessions')
       .update(updateData)
       .eq('id', sessionId)
@@ -243,6 +269,16 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const supabaseClient = supabase;
+
+    if (!supabaseClient) {
+      console.error('[Document Sessions API] Supabase client unavailable');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
 
@@ -254,7 +290,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Cancel/complete session
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('document_request_sessions')
       .update({
         status: 'cancelled',

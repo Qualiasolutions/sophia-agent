@@ -14,6 +14,8 @@ export * from './template-optimizer.service';
 export * from './template-instructions.service';
 export * from './template-cache.service';
 export * from './document-optimized.service';
+export * from './google-ai.service';
+export * from './chatbase.service';
 
 // Telegram services with lazy loading
 export {
